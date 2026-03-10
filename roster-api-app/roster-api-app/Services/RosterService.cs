@@ -40,8 +40,9 @@ public class RosterService : IRosterService
                 TaskId = t.TaskId,
                 LocationId = t.LocationId,
                 ResidentId = t.ResidentId,
-                StartTime = TimeSpan.Parse(t.StartTime),
-                EndTime = TimeSpan.Parse(t.EndTime),
+                ScheduledDate = t.ScheduledDate,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
                 FrequencyType = t.FrequencyType,
                 Notes = t.Notes
             }).ToList()
@@ -66,8 +67,9 @@ public class RosterService : IRosterService
             TaskId = t.TaskId,
             LocationId = t.LocationId,
             ResidentId = t.ResidentId,
-            StartTime = TimeSpan.Parse(t.StartTime),
-            EndTime = TimeSpan.Parse(t.EndTime),
+            ScheduledDate = t.ScheduledDate,
+            StartTime = t.StartTime,
+            EndTime = t.EndTime,
             FrequencyType = t.FrequencyType,
             Notes = t.Notes
         }).ToList();
@@ -111,8 +113,9 @@ public class RosterService : IRosterService
                 LocationName = t.Location?.Name,
                 ResidentId = t.ResidentId,
                 ResidentName = t.Resident?.Name,
-                StartTime = t.StartTime.ToString(),
-                EndTime = t.EndTime.ToString(),
+                ScheduledDate = t.ScheduledDate,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
                 FrequencyType = t.FrequencyType,
                 Notes = t.Notes
             }).ToList()

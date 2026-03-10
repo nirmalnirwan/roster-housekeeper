@@ -15,6 +15,7 @@ public class RosterTask
     public Location? Location { get; set; }
     public int? ResidentId { get; set; }
     public Resident? Resident { get; set; }
+    public DateTime ScheduledDate { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
     public string FrequencyType { get; set; } = string.Empty;

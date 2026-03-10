@@ -44,7 +44,8 @@ export interface RosterTask {
   locationName?: string;
   residentId?: number;
   residentName?: string;
-  startTime: string; // TimeSpan as string
+  scheduledDate: string;
+  startTime: string; // HH:MM format
   endTime: string;
   frequencyType: string;
   notes: string;
