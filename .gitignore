@@ -4,8 +4,9 @@
 
 /roster-api-app/.vs/roster-api-app.slnx
 /roster-api-app/roster-api-app/bin/Debug/net10.0
-/roster-api-app/roster-api-app/Migrations
+#/roster-api-app/roster-api-app/Migrations  # keep EF migrations under source control
 /roster-api-app/roster-api-app/obj
 /roster-auth-app/.vs
 /roster-auth-app/roster-auth-app/bin/Debug/net10.0
 /roster-auth-app/roster-auth-app/obj
+/roster-api-app/roster-api-app/Migrations
