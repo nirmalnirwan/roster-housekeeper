@@ -20,6 +20,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IHousekeeperRepository, HousekeeperRepository>();
 builder.Services.AddScoped<IHousekeeperService, HousekeeperService>();
 
+builder.Services.AddScoped<IRosterRepository, RosterRepository>();
+builder.Services.AddScoped<IRosterService, RosterService>();
+
 // Add authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
