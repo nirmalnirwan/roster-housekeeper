@@ -7,16 +7,24 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { Roster, RosterTask } from '../../lib/types';
 import { getRosters, updateRoster } from '../services/rosterService';
+import { Button } from '../../components/ui/button';
 
 export default function RosterPage() {
   const [rosters, setRosters] = useState<Roster[]>([]);
   const [current, setCurrent] = useState<Roster | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const data = await getRosters();
-      setRosters(data);
-      if (data.length > 0) setCurrent(data[0]);
+      try {
+        const data = await getRosters();
+        setRosters(data);
+        if (data.length > 0) setCurrent(data[0]);
+      } catch (error) {
+        console.error('Failed to load rosters', error);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
@@ -27,16 +35,13 @@ export default function RosterPage() {
     return tasks.map(t => {
       const [h1, m1] = t.startTime.split(':').map(Number);
       const [h2, m2] = t.endTime.split(':').map(Number);
-      const dayOffset = new Date(t.startTime).getDay(); // placeholder
-      // actually tasks don't have day info; assume startTime includes full date?
-      // For simplicity we append to weekStart + some offset if stored in notes?
-      const start = new Date(weekStart);
+      const start = new Date(t.scheduledDate);
       start.setHours(h1, m1);
-      const end = new Date(weekStart);
+      const end = new Date(t.scheduledDate);
       end.setHours(h2, m2);
       return {
         id: t.id.toString(),
-        title: t.taskName,
+        title: `${t.taskName} - ${t.housekeeperName}`,
         start,
         end,
         extendedProps: t,
@@ -55,20 +60,37 @@ export default function RosterPage() {
     updateRoster(current.id, current);
   }
 
+  if (loading) {
+    return <div className="text-center py-12">Loading rosters...</div>;
+  }
+
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Weekly Roster</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Weekly Roster</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Drag tasks to reschedule them
+        </p>
+      </div>
+
       {current && (
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          editable={true}
-          selectable={true}
-          events={mapTasksToEvents(current.rosterTasks)}
-          eventDrop={handleEventDrop}
-          slotMinTime="06:00:00"
-          slotMaxTime="20:00:00"
-        />
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridWeek"
+            editable={true}
+            selectable={true}
+            events={mapTasksToEvents(current.rosterTasks)}
+            eventDrop={handleEventDrop}
+            slotMinTime="06:00:00"
+            slotMaxTime="20:00:00"
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'timeGridWeek,dayGridMonth'
+            }}
+          />
+        </div>
       )}
     </div>
   );

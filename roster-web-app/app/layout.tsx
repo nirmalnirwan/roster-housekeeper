@@ -6,13 +6,14 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import SideNav from "@/components/sidenav";
 import { syncCurrentUser } from "@/lib/sync-user";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "roster app - Public Roadmap",
-  description: "A platform for users to suggest and vote on features",
+  title: "Roster Manager - Housekeeper Scheduling",
+  description: "Manage weekly cleaning rosters for retirement villages",
 };
 
 export default async function RootLayout({
@@ -33,10 +34,15 @@ export default async function RootLayout({
           >
             {/* Navbar */}
             <Navbar />
-            {/* Main section */}
-            <main className="flex-1 container mx-auto px-4 py-8">
-              {children}
-            </main>
+            {/* Main Content with Sidebar */}
+            <div className="flex flex-1">
+              <SideNav />
+              <main className="flex-1 bg-gray-50 dark:bg-slate-900">
+                <div className="container mx-auto px-4 py-8">
+                  {children}
+                </div>
+              </main>
+            </div>
             {/* Footer */}
             <Footer />
             <Toaster richColors />
