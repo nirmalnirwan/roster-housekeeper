@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import useRequireAuth from '../hooks/useRequireAuth';
 import { Roster } from '../../lib/types';
 import { getRosters, exportRosterPdf, exportRosterExcel } from '../services/rosterService';
 import { Button } from '../../components/ui/button';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { FileText, Download } from 'lucide-react';
 
 export default function ExportPage() {
+  useRequireAuth();
   const [rosters, setRosters] = useState<Roster[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState<number | null>(null);

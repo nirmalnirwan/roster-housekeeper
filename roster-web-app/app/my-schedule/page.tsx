@@ -1,21 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { Housekeeper, RosterTask } from '../../lib/types';
 import { getRosters } from '../services/rosterService';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Clock, MapPin, User } from 'lucide-react';
+import useRequireAuth from '../hooks/useRequireAuth';
 
 export default function HousekeeperSchedulePage() {
+  useRequireAuth();
   const [tasks, setTasks] = useState<RosterTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const { getToken } = useAuth();
 
   useEffect(() => {
     async function load() {
       try {
-        const token = await getToken();
         const rosters = await getRosters();
         const allTasks = rosters.flatMap(r => r.rosterTasks);
         setTasks(allTasks);
@@ -26,7 +25,7 @@ export default function HousekeeperSchedulePage() {
       }
     }
     load();
-  }, [getToken]);
+  }, []);
 
   if (loading) {
     return <div className="text-center py-12">Loading schedule...</div>;

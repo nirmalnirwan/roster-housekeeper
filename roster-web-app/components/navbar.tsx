@@ -3,10 +3,45 @@
 import {  Sparkle } from "lucide-react";
 import Link from "next/link";
 import ThemeToggle from "./theme-toggle";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Button } from "./ui/button";
+import { isAuthenticated, logout } from "../app/services/authService";
+import { useRouter } from "next/navigation";
+import { useSyncExternalStore } from "react";
+
+const AUTH_CHANGE_EVENT = "auth-change";
+
+function subscribeToAuthChanges(onStoreChange: () => void) {
+    window.addEventListener("storage", onStoreChange);
+    window.addEventListener(AUTH_CHANGE_EVENT, onStoreChange);
+
+    return () => {
+        window.removeEventListener("storage", onStoreChange);
+        window.removeEventListener(AUTH_CHANGE_EVENT, onStoreChange);
+    };
+}
+
+function getAuthSnapshot() {
+    return isAuthenticated();
+}
+
+function getServerAuthSnapshot() {
+    return false;
+}
 
 export default function Navbar() {
+    const router = useRouter();
+    const auth = useSyncExternalStore(
+        subscribeToAuthChanges,
+        getAuthSnapshot,
+        getServerAuthSnapshot
+    );
+
+    const handleLogout = () => {
+        logout();
+        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+        router.push('/login');
+    };
+
     return (
         <nav className="border-b bg-background">
             <div className="container mx-auto flex h-16 justify-between items-center">
@@ -27,18 +62,16 @@ export default function Navbar() {
                     </Link>
                 </div>
                 <div className="flex items-center gap-4">
-                    {/* Future user profile and auth buttons will go here */}
                     <ThemeToggle/>
-                    <SignedOut>
-                        <SignInButton>
-                            <Button asChild>
-                                <Link href="/sign-in">Sign In</Link>
-                            </Button>
-                        </SignInButton>
-                    </SignedOut>
-                    <SignedIn>
-                       <UserButton />
-                    </SignedIn>
+                    {auth ? (
+                      <Button variant="ghost" onClick={handleLogout}>
+                        Logout
+                      </Button>
+                    ) : (
+                      <Button asChild>
+                        <Link href="/login">Login</Link>
+                      </Button>
+                    )}
                 </div>
                 
             </div>

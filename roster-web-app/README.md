@@ -16,7 +16,25 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### Configuration
+
+The frontend requires a couple of public environment variables:
+
+- `NEXT_PUBLIC_API_BASE` – URL of the **roster API** (e.g. `http://localhost:5000`).
+- `NEXT_PUBLIC_AUTH_BASE` – URL of the **authentication service** (e.g. `http://localhost:5001`).
+
+Create a `.env.local` file in the project root (this file is gitignored by default) and add:
+
+```env
+NEXT_PUBLIC_API_BASE=http://localhost:5000
+NEXT_PUBLIC_AUTH_BASE=http://localhost:5001
+```
+
+Modify these values for your development, staging or production environments as needed.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This application now includes a traditional username/password login workflow. Use the **/login** route to sign in; successful authentication stores a JWT in local storage and protects all other pages.  Unauthenticated visitors are redirected back to **/login**.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

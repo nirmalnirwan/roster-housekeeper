@@ -40,6 +40,20 @@
         "uriFormat": "%s",
         "webRoot": "${workspaceFolder}"
       }
+    },
+    {
+      "name": ".NET API: launch on 5000",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/../roster-api-app/roster-api-app/bin/Debug/net8.0/roster-api-app.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/../roster-api-app/roster-api-app",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      },
+      "stopAtEntry": false
     }
   ]
 }

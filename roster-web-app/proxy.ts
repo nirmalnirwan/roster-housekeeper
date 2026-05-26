@@ -1,6 +1,11 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export default clerkMiddleware();
+// placeholder middleware - authentication handled in client side
+// remove Clerk dependency
+
+export default function middleware(req) {
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [

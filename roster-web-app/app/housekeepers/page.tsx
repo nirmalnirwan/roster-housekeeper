@@ -1,28 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/nextjs';
 import { Housekeeper } from '../../lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Mail, Phone, Briefcase, Badge } from 'lucide-react';
+import useRequireAuth from '../hooks/useRequireAuth';
+import { apiClient } from '@/app/services/apiClient';
 
 export default function HousekeepersPage() {
+  useRequireAuth();
   const [housekeepers, setHousekeepers] = useState<Housekeeper[]>([]);
   const [loading, setLoading] = useState(true);
-  const { getToken } = useAuth();
 
   useEffect(() => {
     async function fetchHousekeepers() {
       try {
-        const token = await getToken();
-        const res = await fetch('http://localhost:5000/api/housekeepers', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setHousekeepers(data);
-        }
+        const res = await apiClient.get('/housekeepers');
+        const data = await res.json();
+        setHousekeepers(data);
       } catch (error) {
         console.error('Failed to fetch housekeepers', error);
       } finally {
@@ -30,7 +26,7 @@ export default function HousekeepersPage() {
       }
     }
     fetchHousekeepers();
-  }, [getToken]);
+  }, []);
 
   if (loading) {
     return <div className="text-center py-12">Loading housekeepers...</div>;

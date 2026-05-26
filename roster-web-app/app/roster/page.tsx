@@ -8,8 +8,10 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { Roster, RosterTask } from '../../lib/types';
 import { getRosters, updateRoster } from '../services/rosterService';
 import { Button } from '../../components/ui/button';
+import useRequireAuth from '../hooks/useRequireAuth';
 
 export default function RosterPage() {
+  useRequireAuth();
   const [rosters, setRosters] = useState<Roster[]>([]);
   const [current, setCurrent] = useState<Roster | null>(null);
   const [loading, setLoading] = useState(true);
