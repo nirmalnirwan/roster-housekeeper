@@ -1,6 +1,6 @@
 import { getToken } from './authService';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5000';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5002';
 
 async function request(path: string, options: RequestInit = {}) {
   const token = getToken();

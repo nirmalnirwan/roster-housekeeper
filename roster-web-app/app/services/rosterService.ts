@@ -5,34 +5,34 @@ import { apiClient } from './apiClient';
 // attaches the JWT token (when present) and handles base URL.
 
 export async function getRosters(): Promise<Roster[]> {
-  const res = await apiClient.get('/api/rosters');
+  const res = await apiClient.get('/rosters');
   return res.json();
 }
 
 export async function getRoster(id: number): Promise<Roster> {
-  const res = await apiClient.get(`/api/rosters/${id}`);
+  const res = await apiClient.get(`/rosters/${id}`);
   return res.json();
 }
 
 export async function createRoster(roster: Roster): Promise<Roster> {
-  const res = await apiClient.post('/api/rosters', roster);
+  const res = await apiClient.post('/rosters', roster);
   return res.json();
 }
 
 export async function updateRoster(id: number, roster: Roster): Promise<void> {
-  await apiClient.put(`/api/rosters/${id}`, roster);
+  await apiClient.put(`/rosters/${id}`, roster);
 }
 
 export async function deleteRoster(id: number): Promise<void> {
-  await apiClient.delete(`/api/rosters/${id}`);
+  await apiClient.delete(`/rosters/${id}`);
 }
 
 export async function exportRosterPdf(id: number): Promise<Blob> {
-  const res = await apiClient.get(`/api/rosters/${id}/export/pdf`);
+  const res = await apiClient.get(`/rosters/${id}/export/pdf`);
   return res.blob();
 }
 
 export async function exportRosterExcel(id: number): Promise<Blob> {
-  const res = await apiClient.get(`/api/rosters/${id}/export/excel`);
+  const res = await apiClient.get(`/rosters/${id}/export/excel`);
   return res.blob();
 }
