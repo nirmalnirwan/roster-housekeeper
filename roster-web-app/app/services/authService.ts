@@ -1,19 +1,19 @@
 // authentication helper for traditional JWT login
 import { LoginRequest, LoginResponse, User } from '../../types/auth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5002';
 // authentication service may run on its own port, default to 5001
 const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_API_BASE;
 const TOKEN_KEY = 'token';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
+export const AUTH_CHANGE_EVENT = 'auth-change';
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const body: LoginRequest = { username, password };
   const res = await fetch(`${AUTH_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: username, password }), // backend expects email property
+    body: JSON.stringify({ email: body.username, password: body.password }), // backend expects email property
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -33,6 +33,7 @@ export async function login(username: string, password: string): Promise<LoginRe
   setToken(mapped.token);
   setRefreshToken(mapped.refreshToken);
   setUser(mapped.user);
+  notifyAuthChanged();
   return mapped;
 }
 
@@ -61,6 +62,7 @@ export async function refresh(): Promise<LoginResponse> {
 
 export function logout(): void {
   clearStorage();
+  notifyAuthChanged();
 }
 
 export function getToken(): string | null {
@@ -109,5 +111,11 @@ function clearStorage() {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     document.cookie = 'token=;path=/; max-age=0';
+  }
+}
+
+function notifyAuthChanged() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
   }
 }

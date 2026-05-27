@@ -4,11 +4,9 @@ import {  Sparkle } from "lucide-react";
 import Link from "next/link";
 import ThemeToggle from "./theme-toggle";
 import { Button } from "./ui/button";
-import { isAuthenticated, logout } from "../app/services/authService";
+import { AUTH_CHANGE_EVENT, isAuthenticated, logout } from "../app/services/authService";
 import { useRouter } from "next/navigation";
 import { useSyncExternalStore } from "react";
-
-const AUTH_CHANGE_EVENT = "auth-change";
 
 function subscribeToAuthChanges(onStoreChange: () => void) {
     window.addEventListener("storage", onStoreChange);
@@ -38,7 +36,6 @@ export default function Navbar() {
 
     const handleLogout = () => {
         logout();
-        window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
         router.push('/login');
     };
 
