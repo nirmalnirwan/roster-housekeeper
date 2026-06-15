@@ -9,7 +9,6 @@
 /roster-auth-app/.vs
 /roster-auth-app/roster-auth-app/bin/Debug/net10.0
 /roster-auth-app/roster-auth-app/obj
-/roster-api-app/roster-api-app/Migrations
 /roster-api-app/.vs
 /roster-api-app/roster-api-app/Properties/launchSettings.json
 /roster-api-app/roster-api-app/appsettings.Development.json
@@ -20,3 +19,4 @@
 /roster-auth-app/roster-auth-app/appsettings.json
 /roster-auth-app/roster-auth-app/Properties/launchSettings.json
 /roster-auth-app/roster-auth-app/roster-auth-app.csproj
+/roster-api-app/roster-api-app/Migrations
