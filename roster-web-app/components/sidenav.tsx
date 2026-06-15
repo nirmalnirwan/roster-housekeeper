@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Users, MapPin, CheckSquare, FileText, Home } from 'lucide-react';
+import { Calendar, Users, CheckSquare, FileText, Home } from 'lucide-react';
 
 export default function SideNav() {
   const pathname = usePathname();
@@ -13,6 +13,8 @@ export default function SideNav() {
     { href: '/roster', label: 'Weekly Roster', icon: Calendar },
     { href: '/my-schedule', label: 'My Schedule', icon: CheckSquare },
     { href: '/export', label: 'Export', icon: FileText },
+    { href: '/task', label: 'Tasks', icon: FileText },
+
   ];
 
   return (
@@ -41,6 +43,8 @@ export default function SideNav() {
           );
         })}
       </div>
+
+      
     </nav>
   );
 }

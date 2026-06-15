@@ -4,7 +4,6 @@ using Microsoft.IdentityModel.Tokens;
 using roster_api_app.Data;
 using roster_api_app.Repositories;
 using roster_api_app.Services;
-using System.Text;
 using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -33,7 +32,11 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 
 

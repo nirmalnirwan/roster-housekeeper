@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Housekeeper, RosterTask } from '../../lib/types';
+import { RosterTask } from '../../lib/types';
 import { getRosters } from '../services/rosterService';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Clock, MapPin, User } from 'lucide-react';

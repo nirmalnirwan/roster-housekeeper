@@ -1,12 +1,30 @@
 // authentication helper for traditional JWT login
 import { LoginRequest, LoginResponse, User } from '../../types/auth';
 
-// authentication service may run on its own port, default to 5001
-const AUTH_BASE = process.env.NEXT_PUBLIC_AUTH_API_BASE;
+const AUTH_BASE =
+  process.env.NEXT_PUBLIC_AUTH_BASE ||
+  process.env.NEXT_PUBLIC_AUTH_API_BASE ||
+  process.env.NEXT_PUBLIC_API_BASE ||
+  'http://localhost:5001';
 const TOKEN_KEY = 'token';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
 export const AUTH_CHANGE_EVENT = 'auth-change';
+
+interface AuthErrorResponse {
+  error?: string;
+  errors?: Array<{ description?: string; code?: string }>;
+  message?: string;
+}
+
+export interface RegisterUserRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  userRole: string;
+  requestedOrgName?: string;
+}
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const body: LoginRequest = { username, password };
@@ -37,10 +55,22 @@ export async function login(username: string, password: string): Promise<LoginRe
   return mapped;
 }
 
+export async function registerUser(user: RegisterUserRequest): Promise<void> {
+  const res = await fetch(`${AUTH_BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user),
+  });
+
+  if (!res.ok) {
+    throw new Error(await readAuthError(res, 'User registration failed'));
+  }
+}
+
 export async function refresh(): Promise<LoginResponse> {
   const stored = typeof window !== 'undefined' ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
   if (!stored) throw new Error('No refresh token');
-  const res = await fetch(`${AUTH_BASE}/api/auth/refresh-token`, {
+  const res = await fetch(`${AUTH_BASE}/api/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: stored }),
@@ -118,4 +148,23 @@ function notifyAuthChanged() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
   }
+}
+
+async function readAuthError(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await res.json()) as AuthErrorResponse | Array<{ description?: string }>;
+    if (Array.isArray(body)) {
+      return body.map((error) => error.description).filter(Boolean).join(', ') || fallback;
+    }
+
+    if (body.error) return body.error;
+    if (body.message) return body.message;
+    if (body.errors?.length) {
+      return body.errors.map((error) => error.description || error.code).filter(Boolean).join(', ');
+    }
+  } catch {
+    return res.statusText || fallback;
+  }
+
+  return fallback;
 }

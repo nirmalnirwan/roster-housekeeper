@@ -4,7 +4,17 @@ export interface Housekeeper {
   phone: string;
   email: string;
   status: string;
-  employmentType: string;
+  employmentType: EmployeeType;
+}
+
+export type EmployeeType = 'Permanent' | 'Casual';
+
+export interface CreateHousekeeperRequest {
+  name: string;
+  phone: string;
+  email: string;
+  status: string;
+  employmentType: EmployeeType;
 }
 
 export interface Resident {
@@ -58,3 +68,4 @@ export interface Roster {
   createdDate: string;
   rosterTasks: RosterTask[];
 }
+

@@ -45,6 +45,13 @@ public class HousekeeperService : IHousekeeperService
 
     public async Task<HousekeeperDto> CreateAsync(HousekeeperDto dto)
     {
+        Normalize(dto);
+
+        if (await _repository.EmailExistsAsync(dto.Email))
+        {
+            throw new InvalidOperationException("A housekeeper with this email already exists.");
+        }
+
         var housekeeper = new Housekeeper
         {
             Name = dto.Name,
@@ -62,6 +69,14 @@ public class HousekeeperService : IHousekeeperService
     {
         var housekeeper = await _repository.GetByIdAsync(id);
         if (housekeeper == null) throw new KeyNotFoundException("Housekeeper not found");
+
+        Normalize(dto);
+
+        if (await _repository.EmailExistsAsync(dto.Email, id))
+        {
+            throw new InvalidOperationException("A housekeeper with this email already exists.");
+        }
+
         housekeeper.Name = dto.Name;
         housekeeper.Phone = dto.Phone;
         housekeeper.Email = dto.Email;
@@ -73,5 +88,13 @@ public class HousekeeperService : IHousekeeperService
     public async Task DeleteAsync(int id)
     {
         await _repository.DeleteAsync(id);
+    }
+
+    private static void Normalize(HousekeeperDto dto)
+    {
+        dto.Name = dto.Name.Trim();
+        dto.Phone = dto.Phone.Trim();
+        dto.Email = dto.Email.Trim().ToLower();
+        dto.Status = dto.Status.Trim();
     }
 }

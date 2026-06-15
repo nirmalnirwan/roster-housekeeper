@@ -45,29 +45,48 @@ namespace roster_auth_app.Controllers
             public async Task<IActionResult> Register(CreateUserDto dto)
             {
                 if (!new EmailAddressAttribute().IsValid(dto.Email))
-                    return BadRequest("Invalid email");
+                    return BadRequest(new { error = "Invalid email" });
+
+                var email = dto.Email.Trim().ToLower();
+                var firstName = dto.FirstName.Trim();
+                var lastName = dto.LastName.Trim();
+                var role = dto.UserRole.Trim();
+
+                if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+                    return BadRequest(new { error = "First name and last name are required" });
+
+                if (!await _context.Roles.AnyAsync(r => r.Name == role))
+                    return BadRequest(new { error = "Invalid user role" });
+
+                if (await _userManager.FindByEmailAsync(email) != null)
+                    return BadRequest(new { error = "A user with this email already exists" });
 
                 // Determine status based on role
-                var status = dto.UserRole == "OrganizationAdmin"
+                var status = role == AppRoles.OrganizationAdmin
                     ? UserStatus.Pending
                     : UserStatus.Active;
 
                 var user = new User
                 {
-                    UserName = dto.Email,
-                    Email = dto.Email,
-                    FirstName = dto.FirstName,
-                    LastName = dto.LastName,
-                    Initials = $"{dto.FirstName?[0]}{dto.LastName?[0]}",
+                    UserName = email,
+                    Email = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Initials = $"{firstName[0]}{lastName[0]}",
                     Status = status,
                     CreatedAt = DateTime.UtcNow
                 };
 
                 var result = await _userManager.CreateAsync(user, dto.Password);
                 if (!result.Succeeded)
-                    return BadRequest(result.Errors);
+                    return BadRequest(new { errors = result.Errors });
 
-                await _userManager.AddToRoleAsync(user, dto.UserRole);
+                var roleResult = await _userManager.AddToRoleAsync(user, role);
+                if (!roleResult.Succeeded)
+                {
+                    await _userManager.DeleteAsync(user);
+                    return BadRequest(new { errors = roleResult.Errors });
+                }
 
            
            

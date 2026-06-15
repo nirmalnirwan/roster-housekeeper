@@ -2,6 +2,14 @@ import { getToken } from './authService';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:5002';
 
+type JsonBody = object | unknown[];
+
+interface ApiErrorResponse {
+  error?: string;
+  errors?: Record<string, string[]> | string[] | Array<{ description?: string; code?: string }>;
+  title?: string;
+}
+
 async function request(path: string, options: RequestInit = {}) {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -27,19 +35,14 @@ async function request(path: string, options: RequestInit = {}) {
         ...options,
         headers,
       });
-    } catch (e) {
+    } catch {
       // if refresh fails, propagate original error
     }
   }
 
   if (!res.ok) {
     // attempt to read body for error message
-    let errorMsg = res.statusText;
-    try {
-      const body = await res.json();
-      if (body && body.error) errorMsg = body.error;
-    } catch {}
-    throw new Error(errorMsg);
+    throw new Error(await readErrorMessage(res));
   }
 
   return res;
@@ -47,9 +50,33 @@ async function request(path: string, options: RequestInit = {}) {
 
 export const apiClient = {
   get: (path: string) => request(path, { method: 'GET' }),
-  post: (path: string, body?: any) =>
+  post: (path: string, body?: JsonBody) =>
     request(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-  put: (path: string, body?: any) =>
+  put: (path: string, body?: JsonBody) =>
     request(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
   delete: (path: string) => request(path, { method: 'DELETE' }),
 };
+
+async function readErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as ApiErrorResponse;
+
+    if (body.error) return body.error;
+    if (Array.isArray(body.errors)) {
+      return (
+        body.errors
+          .map((error) => (typeof error === 'string' ? error : error.description || error.code))
+          .filter(Boolean)
+          .join(', ') || body.title || res.statusText
+      );
+    }
+    if (body.errors) {
+      return Object.values(body.errors).flat().join(', ') || body.title || res.statusText;
+    }
+    if (body.title) return body.title;
+  } catch {
+    return res.statusText;
+  }
+
+  return res.statusText;
+}

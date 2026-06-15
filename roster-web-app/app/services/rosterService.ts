@@ -1,4 +1,4 @@
-import { Roster, RosterTask } from '../../lib/types';
+import { Roster } from '../../lib/types';
 import { apiClient } from './apiClient';
 
 // wrapper functions that delegate to apiClient which automatically

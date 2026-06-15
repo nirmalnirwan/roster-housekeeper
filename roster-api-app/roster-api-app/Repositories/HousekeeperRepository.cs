@@ -23,6 +23,15 @@ public class HousekeeperRepository : IHousekeeperRepository
         return await _context.Housekeepers.FindAsync(id);
     }
 
+    public async Task<bool> EmailExistsAsync(string email, int? excludeId = null)
+    {
+        var normalizedEmail = email.Trim().ToLower();
+
+        return await _context.Housekeepers.AnyAsync(h =>
+            h.Email.ToLower() == normalizedEmail &&
+            (!excludeId.HasValue || h.Id != excludeId.Value));
+    }
+
     public async Task AddAsync(Housekeeper housekeeper)
     {
         _context.Housekeepers.Add(housekeeper);

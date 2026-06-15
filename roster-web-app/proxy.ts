@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // placeholder middleware - authentication handled in client side
 // remove Clerk dependency
 
-export default function middleware(req) {
+export default function middleware() {
   return NextResponse.next();
 }
 

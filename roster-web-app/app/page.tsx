@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Calendar,
   Users,
-  MapPin,
   CheckSquare,
   FileText,
   ArrowRight,
@@ -45,6 +44,14 @@ export default function HomePage() {
       icon: FileText,
       title: "Export Rosters",
       description: "Export rosters as PDF or Excel for printing and distribution",
+      color: "bg-orange-100 dark:bg-orange-900",
+      textColor: "text-orange-600 dark:text-orange-300",
+    },
+     {
+      href: "/task",
+      icon: FileText,
+      title: "Manage Tasks",
+      description: "Create and manage cleaning tasks for your housekeepers",
       color: "bg-orange-100 dark:bg-orange-900",
       textColor: "text-orange-600 dark:text-orange-300",
     },

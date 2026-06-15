@@ -5,14 +5,13 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import type { EventDropArg } from '@fullcalendar/core';
 import { Roster, RosterTask } from '../../lib/types';
 import { getRosters, updateRoster } from '../services/rosterService';
-import { Button } from '../../components/ui/button';
 import useRequireAuth from '../hooks/useRequireAuth';
 
 export default function RosterPage() {
   useRequireAuth();
-  const [rosters, setRosters] = useState<Roster[]>([]);
   const [current, setCurrent] = useState<Roster | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +19,6 @@ export default function RosterPage() {
     async function load() {
       try {
         const data = await getRosters();
-        setRosters(data);
         if (data.length > 0) setCurrent(data[0]);
       } catch (error) {
         console.error('Failed to load rosters', error);
@@ -33,7 +31,6 @@ export default function RosterPage() {
 
   function mapTasksToEvents(tasks: RosterTask[]) {
     if (!current) return [];
-    const weekStart = new Date(current.weekStartDate);
     return tasks.map(t => {
       const [h1, m1] = t.startTime.split(':').map(Number);
       const [h2, m2] = t.endTime.split(':').map(Number);
@@ -51,9 +48,10 @@ export default function RosterPage() {
     });
   }
 
-  function handleEventDrop(change: any) {
+  function handleEventDrop(change: EventDropArg) {
     const { event } = change;
     if (!current) return;
+    if (!event.start || !event.end) return;
     const taskId = parseInt(event.id, 10);
     const task = current.rosterTasks.find(t => t.id === taskId);
     if (!task) return;
