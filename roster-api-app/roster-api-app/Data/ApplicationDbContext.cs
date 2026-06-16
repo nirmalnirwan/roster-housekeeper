@@ -21,6 +21,10 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<CleaningTask>()
+            .Property(ct => ct.TaskCategory)
+            .HasDefaultValue(Entities.Enums.CleaningTaskCategory.CommunityArea);
+
         // Configure relationships
         modelBuilder.Entity<RosterTask>()
             .HasOne(rt => rt.Roster)

@@ -39,6 +39,21 @@ export interface CleaningTask {
   id: number;
   name: string;
   description: string;
+  taskCategory: CleaningTaskCategory;
+  estimatedDuration: number;
+  frequency: string;
+}
+
+export type CleaningTaskCategory =
+  | 'CommunityArea'
+  | 'Apartment'
+  | 'UnitOrRoom'
+  | 'SpecialTask';
+
+export interface CleaningTaskRequest {
+  name: string;
+  description: string;
+  taskCategory: CleaningTaskCategory;
   estimatedDuration: number;
   frequency: string;
 }

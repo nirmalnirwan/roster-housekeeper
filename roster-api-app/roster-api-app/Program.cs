@@ -10,6 +10,9 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key configuration is required.");
+
 
 var allowedOrigins = new[] {
     "http://localhost:3000",  // Next.js frontend
@@ -57,7 +60,7 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = builder.Configuration["Jwt:Issuer"],   // same as Identity API
         ValidAudience = builder.Configuration["Jwt:Audience"], // same as Identity API
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])) // same secret key
+            Encoding.UTF8.GetBytes(jwtKey)) // same secret key
     };
 });
 
@@ -89,6 +92,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Add repositories and services
 builder.Services.AddScoped<IHousekeeperRepository, HousekeeperRepository>();
 builder.Services.AddScoped<IHousekeeperService, HousekeeperService>();
+builder.Services.AddScoped<ICleaningTaskRepository, CleaningTaskRepository>();
+builder.Services.AddScoped<ICleaningTaskService, CleaningTaskService>();
 
 builder.Services.AddScoped<IRosterRepository, RosterRepository>();
 builder.Services.AddScoped<IRosterService, RosterService>();
