@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Calendar,
   Users,
+  MapPin,
   CheckSquare,
   FileText,
   ArrowRight,
@@ -30,6 +31,14 @@ export default function HomePage() {
       description: "Create and manage weekly cleaning schedules with drag-and-drop",
       color: "bg-purple-100 dark:bg-purple-900",
       textColor: "text-purple-600 dark:text-purple-300",
+    },
+    {
+      href: "/locations",
+      icon: MapPin,
+      title: "Manage Locations",
+      description: "Organize care units, building blocks, and floors",
+      color: "bg-cyan-100 dark:bg-cyan-900",
+      textColor: "text-cyan-600 dark:text-cyan-300",
     },
     {
       href: "/my-schedule",

@@ -35,6 +35,43 @@ export interface Location {
   notes: string;
 }
 
+export interface LocationType {
+  id: number;
+  name: string;
+  buildingBlocks: BuildingBlock[];
+}
+
+export interface LocationTypeRequest {
+  name: string;
+}
+
+export interface BuildingBlock {
+  id: number;
+  name: string;
+  locationTypeId: number;
+  locationTypeName: string;
+  floors: Floor[];
+}
+
+export interface BuildingBlockRequest {
+  name: string;
+  locationTypeId: number;
+}
+
+export interface Floor {
+  id: number;
+  name: string;
+  floorNumber: number;
+  buildingBlockId: number;
+  buildingBlockName: string;
+}
+
+export interface FloorRequest {
+  name: string;
+  floorNumber: number;
+  buildingBlockId: number;
+}
+
 export interface CleaningTask {
   id: number;
   name: string;

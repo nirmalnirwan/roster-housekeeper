@@ -94,6 +94,12 @@ builder.Services.AddScoped<IHousekeeperRepository, HousekeeperRepository>();
 builder.Services.AddScoped<IHousekeeperService, HousekeeperService>();
 builder.Services.AddScoped<ICleaningTaskRepository, CleaningTaskRepository>();
 builder.Services.AddScoped<ICleaningTaskService, CleaningTaskService>();
+builder.Services.AddScoped<ILocationTypeRepository, LocationTypeRepository>();
+builder.Services.AddScoped<ILocationTypeService, LocationTypeService>();
+builder.Services.AddScoped<IBuildingBlockRepository, BuildingBlockRepository>();
+builder.Services.AddScoped<IBuildingBlockService, BuildingBlockService>();
+builder.Services.AddScoped<IFloorRepository, FloorRepository>();
+builder.Services.AddScoped<IFloorService, FloorService>();
 
 builder.Services.AddScoped<IRosterRepository, RosterRepository>();
 builder.Services.AddScoped<IRosterService, RosterService>();
