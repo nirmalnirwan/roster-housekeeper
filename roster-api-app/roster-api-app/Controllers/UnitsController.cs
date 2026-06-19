@@ -8,11 +8,11 @@ namespace roster_api_app.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class FloorsController : ControllerBase
+public class UnitsController : ControllerBase
 {
-    private readonly IFloorService _service;
+    private readonly IUnitService _service;
 
-    public FloorsController(IFloorService service)
+    public UnitsController(IUnitService service)
     {
         _service = service;
     }
@@ -20,27 +20,34 @@ public class FloorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var floors = await _service.GetAllAsync();
-        return Ok(floors);
+        var units = await _service.GetAllAsync();
+        return Ok(units);
+    }
+
+    [HttpGet("by-floor/{floorId}")]
+    public async Task<IActionResult> GetByFloor(int floorId)
+    {
+        var units = await _service.GetByFloorAsync(floorId);
+        return Ok(units);
+    }
+
+    [HttpGet("assignable-areas")]
+    public async Task<IActionResult> GetAssignableAreas()
+    {
+        var areas = await _service.GetAssignableAreasAsync();
+        return Ok(areas);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var floor = await _service.GetByIdAsync(id);
-        if (floor == null) return NotFound(new { error = "Floor not found" });
-        return Ok(floor);
-    }
-
-    [HttpGet("by-building-block/{buildingBlockId}")]
-    public async Task<IActionResult> GetByBuildingBlock(int buildingBlockId)
-    {
-        var floors = await _service.GetByBuildingBlockAsync(buildingBlockId);
-        return Ok(floors);
+        var unit = await _service.GetByIdAsync(id);
+        if (unit == null) return NotFound(new { error = "Unit not found" });
+        return Ok(unit);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(FloorRequestDto dto)
+    public async Task<IActionResult> Create(UnitRequestDto dto)
     {
         try
         {
@@ -54,7 +61,7 @@ public class FloorsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, FloorRequestDto dto)
+    public async Task<IActionResult> Update(int id, UnitRequestDto dto)
     {
         try
         {
@@ -63,7 +70,7 @@ public class FloorsController : ControllerBase
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new { error = "Floor not found" });
+            return NotFound(new { error = "Unit not found" });
         }
         catch (InvalidOperationException ex)
         {

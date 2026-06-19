@@ -27,7 +27,18 @@ public class FloorRepository : IFloorRepository
     {
         return await _context.Floors
             .Include(f => f.BuildingBlock)
+            .ThenInclude(bb => bb.LocationType)
             .FirstOrDefaultAsync(f => f.Id == id);
+    }
+
+    public async Task<IEnumerable<Floor>> GetByBuildingBlockAsync(int buildingBlockId)
+    {
+        return await _context.Floors
+            .Include(f => f.BuildingBlock)
+            .Where(f => f.BuildingBlockId == buildingBlockId)
+            .OrderBy(f => f.FloorNumber)
+            .ThenBy(f => f.Name)
+            .ToListAsync();
     }
 
     public async Task<bool> FloorNumberExistsAsync(int buildingBlockId, int floorNumber, int? excludeId = null)

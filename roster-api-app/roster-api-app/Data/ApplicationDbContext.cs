@@ -16,6 +16,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<LocationType> LocationTypes { get; set; }
     public DbSet<BuildingBlock> BuildingBlocks { get; set; }
     public DbSet<Floor> Floors { get; set; }
+    public DbSet<CommonArea> CommonAreas { get; set; }
+    public DbSet<Unit> Units { get; set; }
+    public DbSet<Apartment> Apartments { get; set; }
     public DbSet<CleaningTask> CleaningTasks { get; set; }
     public DbSet<Roster> Rosters { get; set; }
     public DbSet<RosterTask> RosterTasks { get; set; }
@@ -73,6 +76,73 @@ public class ApplicationDbContext : DbContext
             .WithMany(bb => bb.Floors)
             .HasForeignKey(f => f.BuildingBlockId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CommonArea>()
+            .Property(ca => ca.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<CommonArea>()
+            .HasIndex(ca => new { ca.FloorId, ca.Name })
+            .IsUnique();
+
+        modelBuilder.Entity<CommonArea>()
+            .HasOne(ca => ca.Floor)
+            .WithMany(f => f.CommonAreas)
+            .HasForeignKey(ca => ca.FloorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Unit>()
+            .Property(u => u.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<Unit>()
+            .Property(u => u.UnitNumber)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        modelBuilder.Entity<Unit>()
+            .HasIndex(u => new { u.FloorId, u.UnitNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Unit>()
+            .HasOne(u => u.Floor)
+            .WithMany(f => f.Units)
+            .HasForeignKey(u => u.FloorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Apartment>()
+            .Property(a => a.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        modelBuilder.Entity<Apartment>()
+            .Property(a => a.ApartmentNumber)
+            .HasMaxLength(50)
+            .IsRequired();
+
+        modelBuilder.Entity<Apartment>()
+            .HasIndex(a => new { a.FloorId, a.ApartmentNumber })
+            .IsUnique();
+
+        modelBuilder.Entity<Apartment>()
+            .HasOne(a => a.Floor)
+            .WithMany(f => f.Apartments)
+            .HasForeignKey(a => a.FloorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Resident>()
+            .HasOne(r => r.Unit)
+            .WithMany(u => u.Residents)
+            .HasForeignKey(r => r.UnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Resident>()
+            .HasOne(r => r.Apartment)
+            .WithMany(a => a.Residents)
+            .HasForeignKey(r => r.ApartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Configure relationships
         modelBuilder.Entity<RosterTask>()

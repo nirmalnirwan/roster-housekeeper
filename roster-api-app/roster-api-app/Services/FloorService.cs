@@ -27,6 +27,12 @@ public class FloorService : IFloorService
         return floor == null ? null : ToDto(floor);
     }
 
+    public async Task<IEnumerable<FloorDto>> GetByBuildingBlockAsync(int buildingBlockId)
+    {
+        var floors = await _repository.GetByBuildingBlockAsync(buildingBlockId);
+        return floors.Select(ToDto);
+    }
+
     public async Task<FloorDto> CreateAsync(FloorRequestDto dto)
     {
         Normalize(dto);

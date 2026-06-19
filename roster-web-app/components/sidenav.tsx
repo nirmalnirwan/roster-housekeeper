@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Users, CheckSquare, FileText, Home, MapPin } from 'lucide-react';
+import { Bed, Calendar, CheckSquare, FileText, Home, MapPin, Users } from 'lucide-react';
 
 export default function SideNav() {
   const pathname = usePathname();
@@ -11,6 +11,7 @@ export default function SideNav() {
     { href: '/', label: 'Dashboard', icon: Home },
     { href: '/housekeepers', label: 'Housekeepers', icon: Users },
     { href: '/locations', label: 'Locations', icon: MapPin },
+    { href: '/residents', label: 'Residents', icon: Bed },
     { href: '/roster', label: 'Weekly Roster', icon: Calendar },
     { href: '/my-schedule', label: 'My Schedule', icon: CheckSquare },
     { href: '/export', label: 'Export', icon: FileText },

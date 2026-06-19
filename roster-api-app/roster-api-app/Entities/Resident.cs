@@ -8,4 +8,8 @@ public class Resident
     public string Building { get; set; } = string.Empty;
     public string CleaningFrequency { get; set; } = string.Empty; // Daily, Weekly, Fortnightly, Monthly
     public string Notes { get; set; } = string.Empty;
+    public int? UnitId { get; set; }
+    public Unit? Unit { get; set; }
+    public int? ApartmentId { get; set; }
+    public Apartment? Apartment { get; set; }
 }

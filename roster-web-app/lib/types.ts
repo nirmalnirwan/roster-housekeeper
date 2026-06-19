@@ -24,6 +24,22 @@ export interface Resident {
   building: string;
   cleaningFrequency: string;
   notes: string;
+  unitId?: number;
+  unitName?: string;
+  apartmentId?: number;
+  apartmentName?: string;
+  assignmentType: 'Unit' | 'Apartment' | 'Unassigned';
+  assignmentName: string;
+}
+
+export interface ResidentRequest {
+  name: string;
+  roomNumber: string;
+  building: string;
+  cleaningFrequency: string;
+  notes: string;
+  unitId?: number;
+  apartmentId?: number;
 }
 
 export interface Location {
@@ -70,6 +86,77 @@ export interface FloorRequest {
   name: string;
   floorNumber: number;
   buildingBlockId: number;
+}
+
+export interface CommonArea {
+  id: number;
+  name: string;
+  description: string;
+  floorId: number;
+  floorName: string;
+  buildingBlockId: number;
+  buildingBlockName: string;
+  locationTypeId: number;
+  locationTypeName: string;
+}
+
+export interface CommonAreaRequest {
+  name: string;
+  description: string;
+  floorId: number;
+}
+
+export interface Unit {
+  id: number;
+  name: string;
+  unitNumber: string;
+  notes: string;
+  floorId: number;
+  floorName: string;
+  buildingBlockId: number;
+  buildingBlockName: string;
+  locationTypeId: number;
+  locationTypeName: string;
+}
+
+export interface UnitRequest {
+  name: string;
+  unitNumber: string;
+  notes: string;
+  floorId: number;
+}
+
+export interface Apartment {
+  id: number;
+  name: string;
+  apartmentNumber: string;
+  notes: string;
+  floorId: number;
+  floorName: string;
+  buildingBlockId: number;
+  buildingBlockName: string;
+  locationTypeId: number;
+  locationTypeName: string;
+}
+
+export interface ApartmentRequest {
+  name: string;
+  apartmentNumber: string;
+  notes: string;
+  floorId: number;
+}
+
+export interface AssignableArea {
+  id: number;
+  name: string;
+  number: string;
+  areaType: 'Unit' | 'Apartment';
+  floorId: number;
+  floorName: string;
+  buildingBlockId: number;
+  buildingBlockName: string;
+  locationTypeId: number;
+  locationTypeName: string;
 }
 
 export interface CleaningTask {

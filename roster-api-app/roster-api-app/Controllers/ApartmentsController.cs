@@ -8,11 +8,11 @@ namespace roster_api_app.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class FloorsController : ControllerBase
+public class ApartmentsController : ControllerBase
 {
-    private readonly IFloorService _service;
+    private readonly IApartmentService _service;
 
-    public FloorsController(IFloorService service)
+    public ApartmentsController(IApartmentService service)
     {
         _service = service;
     }
@@ -20,27 +20,27 @@ public class FloorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var floors = await _service.GetAllAsync();
-        return Ok(floors);
+        var apartments = await _service.GetAllAsync();
+        return Ok(apartments);
+    }
+
+    [HttpGet("by-floor/{floorId}")]
+    public async Task<IActionResult> GetByFloor(int floorId)
+    {
+        var apartments = await _service.GetByFloorAsync(floorId);
+        return Ok(apartments);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var floor = await _service.GetByIdAsync(id);
-        if (floor == null) return NotFound(new { error = "Floor not found" });
-        return Ok(floor);
-    }
-
-    [HttpGet("by-building-block/{buildingBlockId}")]
-    public async Task<IActionResult> GetByBuildingBlock(int buildingBlockId)
-    {
-        var floors = await _service.GetByBuildingBlockAsync(buildingBlockId);
-        return Ok(floors);
+        var apartment = await _service.GetByIdAsync(id);
+        if (apartment == null) return NotFound(new { error = "Apartment not found" });
+        return Ok(apartment);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(FloorRequestDto dto)
+    public async Task<IActionResult> Create(ApartmentRequestDto dto)
     {
         try
         {
@@ -54,7 +54,7 @@ public class FloorsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, FloorRequestDto dto)
+    public async Task<IActionResult> Update(int id, ApartmentRequestDto dto)
     {
         try
         {
@@ -63,7 +63,7 @@ public class FloorsController : ControllerBase
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new { error = "Floor not found" });
+            return NotFound(new { error = "Apartment not found" });
         }
         catch (InvalidOperationException ex)
         {

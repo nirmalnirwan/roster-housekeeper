@@ -8,11 +8,11 @@ namespace roster_api_app.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class FloorsController : ControllerBase
+public class ResidentsController : ControllerBase
 {
-    private readonly IFloorService _service;
+    private readonly IResidentService _service;
 
-    public FloorsController(IFloorService service)
+    public ResidentsController(IResidentService service)
     {
         _service = service;
     }
@@ -20,27 +20,27 @@ public class FloorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var floors = await _service.GetAllAsync();
-        return Ok(floors);
+        var residents = await _service.GetAllAsync();
+        return Ok(residents);
+    }
+
+    [HttpGet("assignable-areas")]
+    public async Task<IActionResult> GetAssignableAreas()
+    {
+        var areas = await _service.GetAssignableAreasAsync();
+        return Ok(areas);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var floor = await _service.GetByIdAsync(id);
-        if (floor == null) return NotFound(new { error = "Floor not found" });
-        return Ok(floor);
-    }
-
-    [HttpGet("by-building-block/{buildingBlockId}")]
-    public async Task<IActionResult> GetByBuildingBlock(int buildingBlockId)
-    {
-        var floors = await _service.GetByBuildingBlockAsync(buildingBlockId);
-        return Ok(floors);
+        var resident = await _service.GetByIdAsync(id);
+        if (resident == null) return NotFound(new { error = "Resident not found" });
+        return Ok(resident);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(FloorRequestDto dto)
+    public async Task<IActionResult> Create(ResidentRequestDto dto)
     {
         try
         {
@@ -54,7 +54,7 @@ public class FloorsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, FloorRequestDto dto)
+    public async Task<IActionResult> Update(int id, ResidentRequestDto dto)
     {
         try
         {
@@ -63,7 +63,7 @@ public class FloorsController : ControllerBase
         }
         catch (KeyNotFoundException)
         {
-            return NotFound(new { error = "Floor not found" });
+            return NotFound(new { error = "Resident not found" });
         }
         catch (InvalidOperationException ex)
         {

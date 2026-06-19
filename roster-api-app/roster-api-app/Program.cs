@@ -100,6 +100,12 @@ builder.Services.AddScoped<IBuildingBlockRepository, BuildingBlockRepository>();
 builder.Services.AddScoped<IBuildingBlockService, BuildingBlockService>();
 builder.Services.AddScoped<IFloorRepository, FloorRepository>();
 builder.Services.AddScoped<IFloorService, FloorService>();
+builder.Services.AddScoped<IAreaRepository, AreaRepository>();
+builder.Services.AddScoped<ICommonAreaService, CommonAreaService>();
+builder.Services.AddScoped<IUnitService, UnitService>();
+builder.Services.AddScoped<IApartmentService, ApartmentService>();
+builder.Services.AddScoped<IResidentRepository, ResidentRepository>();
+builder.Services.AddScoped<IResidentService, ResidentService>();
 
 builder.Services.AddScoped<IRosterRepository, RosterRepository>();
 builder.Services.AddScoped<IRosterService, RosterService>();
