@@ -12,6 +12,14 @@ public class RosterTaskDto
     public string TaskName { get; set; } = string.Empty;
     public int? LocationId { get; set; }
     public string? LocationName { get; set; }
+    public int? CommonAreaId { get; set; }
+    public string? CommonAreaName { get; set; }
+    public int? UnitId { get; set; }
+    public string? UnitName { get; set; }
+    public int? ApartmentId { get; set; }
+    public string? ApartmentName { get; set; }
+    public string AreaType { get; set; } = string.Empty;
+    public string AreaName { get; set; } = string.Empty;
     public int? ResidentId { get; set; }
     public string? ResidentName { get; set; }
     public DateTime ScheduledDate { get; set; }

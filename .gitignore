@@ -20,3 +20,4 @@
 /roster-auth-app/roster-auth-app/Properties/launchSettings.json
 /roster-auth-app/roster-auth-app/roster-auth-app.csproj
 /roster-api-app/roster-api-app/Migrations
+/roster-api-app/roster-api-app/bin/Release/net10.0

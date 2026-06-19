@@ -13,6 +13,12 @@ public class RosterTask
     public CleaningTask Task { get; set; } = null!;
     public int? LocationId { get; set; }
     public Location? Location { get; set; }
+    public int? CommonAreaId { get; set; }
+    public CommonArea? CommonArea { get; set; }
+    public int? UnitId { get; set; }
+    public Unit? Unit { get; set; }
+    public int? ApartmentId { get; set; }
+    public Apartment? Apartment { get; set; }
     public int? ResidentId { get; set; }
     public Resident? Resident { get; set; }
     public DateTime ScheduledDate { get; set; }

@@ -182,6 +182,8 @@ export interface CleaningTaskRequest {
   frequency: string;
 }
 
+export type RosterAreaType = 'CommonArea' | 'Unit' | 'Apartment';
+
 export interface RosterTask {
   id: number;
   rosterId: number;
@@ -191,10 +193,18 @@ export interface RosterTask {
   taskName: string;
   locationId?: number;
   locationName?: string;
+  commonAreaId?: number;
+  commonAreaName?: string;
+  unitId?: number;
+  unitName?: string;
+  apartmentId?: number;
+  apartmentName?: string;
+  areaType: RosterAreaType | '';
+  areaName: string;
   residentId?: number;
   residentName?: string;
   scheduledDate: string;
-  startTime: string; // HH:MM format
+  startTime: string; // HH:mm:ss format
   endTime: string;
   frequencyType: string;
   notes: string;
@@ -207,4 +217,5 @@ export interface Roster {
   createdDate: string;
   rosterTasks: RosterTask[];
 }
+
 

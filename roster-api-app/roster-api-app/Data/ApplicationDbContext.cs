@@ -163,11 +163,35 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<RosterTask>()
             .HasOne(rt => rt.Location)
             .WithMany()
-            .HasForeignKey(rt => rt.LocationId);
+            .HasForeignKey(rt => rt.LocationId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RosterTask>()
+            .HasOne(rt => rt.CommonArea)
+            .WithMany()
+            .HasForeignKey(rt => rt.CommonAreaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RosterTask>()
+            .HasOne(rt => rt.Unit)
+            .WithMany()
+            .HasForeignKey(rt => rt.UnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RosterTask>()
+            .HasOne(rt => rt.Apartment)
+            .WithMany()
+            .HasForeignKey(rt => rt.ApartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<RosterTask>()
             .HasOne(rt => rt.Resident)
             .WithMany()
-            .HasForeignKey(rt => rt.ResidentId);
+            .HasForeignKey(rt => rt.ResidentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RosterTask>()
+            .HasIndex(rt => new { rt.HousekeeperId, rt.ScheduledDate });
     }
 }
+

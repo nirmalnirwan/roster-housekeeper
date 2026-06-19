@@ -24,26 +24,52 @@ public class RostersController : ControllerBase
         return Ok(dtos);
     }
 
+    [HttpGet("by-week")]
+    public async Task<IActionResult> GetByWeek([FromQuery] DateTime weekStartDate)
+    {
+        var dto = await _service.GetByWeekStartDateAsync(weekStartDate);
+        if (dto == null) return NotFound(new { error = "Roster not found" });
+        return Ok(dto);
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
         var dto = await _service.GetByIdAsync(id);
-        if (dto == null) return NotFound();
+        if (dto == null) return NotFound(new { error = "Roster not found" });
         return Ok(dto);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(RosterDto dto)
     {
-        var created = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        try
+        {
+            var created = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, RosterDto dto)
     {
-        await _service.UpdateAsync(id, dto);
-        return NoContent();
+        try
+        {
+            await _service.UpdateAsync(id, dto);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Roster not found" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]

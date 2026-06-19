@@ -6,6 +6,7 @@ public interface IRosterRepository
 {
     Task<IEnumerable<Roster>> GetAllAsync();
     Task<Roster?> GetByIdAsync(int id);
+    Task<Roster?> GetByWeekStartDateAsync(DateTime weekStartDate);
     Task AddAsync(Roster roster);
     Task UpdateAsync(Roster roster);
     Task DeleteAsync(int id);

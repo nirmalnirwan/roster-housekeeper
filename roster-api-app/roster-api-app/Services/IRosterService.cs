@@ -6,10 +6,10 @@ public interface IRosterService
 {
     Task<IEnumerable<RosterDto>> GetAllAsync();
     Task<RosterDto?> GetByIdAsync(int id);
+    Task<RosterDto?> GetByWeekStartDateAsync(DateTime weekStartDate);
     Task<RosterDto> CreateAsync(RosterDto dto);
     Task UpdateAsync(int id, RosterDto dto);
     Task DeleteAsync(int id);
-    // export methods
     Task<byte[]> ExportPdfAsync(int rosterId);
     Task<byte[]> ExportExcelAsync(int rosterId);
 }

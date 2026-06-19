@@ -15,30 +15,22 @@ public class RosterRepository : IRosterRepository
 
     public async Task<IEnumerable<Roster>> GetAllAsync()
     {
-        return await _context.Rosters
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Housekeeper)
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Task)
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Location)
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Resident)
+        return await IncludeRosterGraph(_context.Rosters)
+            .OrderByDescending(r => r.WeekStartDate)
             .ToListAsync();
     }
 
     public async Task<Roster?> GetByIdAsync(int id)
     {
-        return await _context.Rosters
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Housekeeper)
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Task)
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Location)
-            .Include(r => r.RosterTasks)
-            .ThenInclude(rt => rt.Resident)
+        return await IncludeRosterGraph(_context.Rosters)
             .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task<Roster?> GetByWeekStartDateAsync(DateTime weekStartDate)
+    {
+        var normalized = weekStartDate.Date;
+        return await IncludeRosterGraph(_context.Rosters)
+            .FirstOrDefaultAsync(r => r.WeekStartDate.Date == normalized);
     }
 
     public async Task AddAsync(Roster roster)
@@ -61,5 +53,24 @@ public class RosterRepository : IRosterRepository
             _context.Rosters.Remove(roster);
             await _context.SaveChangesAsync();
         }
+    }
+
+    private static IQueryable<Roster> IncludeRosterGraph(IQueryable<Roster> query)
+    {
+        return query
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.Housekeeper)
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.Task)
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.Location)
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.CommonArea)
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.Unit)
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.Apartment)
+            .Include(r => r.RosterTasks)
+            .ThenInclude(rt => rt.Resident);
     }
 }

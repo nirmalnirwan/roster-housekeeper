@@ -20,30 +20,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-      <html lang="en" suppressHydrationWarning>
-        <body className={`${inter.className} min-h-screen flex flex-col`}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {/* Navbar */}
-            <Navbar />
-            {/* Main Content with Sidebar */}
-            <div className="flex flex-1">
-              <SideNav />
-              <main className="flex-1 bg-gray-50 dark:bg-slate-900">
-                <div className="container mx-auto px-4 py-8">
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-neutral-950 dark:text-slate-100`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="min-h-screen md:flex">
+            <SideNav />
+            <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+              <Navbar />
+              <main className="flex-1 bg-slate-50/90 pb-20 dark:bg-neutral-950 md:pb-0">
+                <div className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
                   {children}
                 </div>
               </main>
+              <Footer />
             </div>
-            {/* Footer */}
-            <Footer />
-            <Toaster richColors />
-          </ThemeProvider>
-        </body>
-      </html>
+          </div>
+          <Toaster richColors />
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
