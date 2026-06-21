@@ -4,6 +4,6 @@ public enum CleaningTaskCategory
 {
     CommunityArea = 0,
     Apartment = 1,
-    UnitOrRoom = 2,
+    Unit = 2,
     SpecialTask = 3
 }

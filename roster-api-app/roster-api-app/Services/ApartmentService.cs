@@ -1,5 +1,6 @@
 using roster_api_app.DTOs;
 using roster_api_app.Entities;
+using roster_api_app.Entities.Enums;
 using roster_api_app.Repositories;
 
 namespace roster_api_app.Services;
@@ -9,11 +10,16 @@ public class ApartmentService : IApartmentService
     private const string VillageUnitName = "Village Unit";
     private readonly IAreaRepository _repository;
     private readonly IFloorRepository _floorRepository;
+    private readonly ICleaningTaskRepository _cleaningTaskRepository;
 
-    public ApartmentService(IAreaRepository repository, IFloorRepository floorRepository)
+    public ApartmentService(
+        IAreaRepository repository,
+        IFloorRepository floorRepository,
+        ICleaningTaskRepository cleaningTaskRepository)
     {
         _repository = repository;
         _floorRepository = floorRepository;
+        _cleaningTaskRepository = cleaningTaskRepository;
     }
 
     public async Task<IEnumerable<ApartmentDto>> GetAllAsync()
@@ -44,7 +50,8 @@ public class ApartmentService : IApartmentService
             Name = dto.Name,
             ApartmentNumber = dto.ApartmentNumber,
             Notes = dto.Notes,
-            FloorId = dto.FloorId
+            FloorId = dto.FloorId,
+            CleaningTaskId = dto.CleaningTaskId
         };
 
         await _repository.AddApartmentAsync(apartment);
@@ -63,6 +70,7 @@ public class ApartmentService : IApartmentService
         apartment.ApartmentNumber = dto.ApartmentNumber;
         apartment.Notes = dto.Notes;
         apartment.FloorId = dto.FloorId;
+        apartment.CleaningTaskId = dto.CleaningTaskId;
         await _repository.UpdateApartmentAsync(apartment);
     }
 
@@ -73,6 +81,7 @@ public class ApartmentService : IApartmentService
 
     internal static ApartmentDto ToDto(Apartment apartment)
     {
+        var resident = apartment.Residents.OrderBy(resident => resident.Id).FirstOrDefault();
         return new ApartmentDto
         {
             Id = apartment.Id,
@@ -84,7 +93,11 @@ public class ApartmentService : IApartmentService
             BuildingBlockId = apartment.Floor?.BuildingBlockId ?? 0,
             BuildingBlockName = apartment.Floor?.BuildingBlock?.Name ?? string.Empty,
             LocationTypeId = apartment.Floor?.BuildingBlock?.LocationTypeId ?? 0,
-            LocationTypeName = apartment.Floor?.BuildingBlock?.LocationType?.Name ?? string.Empty
+            LocationTypeName = apartment.Floor?.BuildingBlock?.LocationType?.Name ?? string.Empty,
+            CleaningTaskId = apartment.CleaningTaskId,
+            CleaningTaskName = apartment.CleaningTask?.Name,
+            ResidentId = resident?.Id,
+            ResidentName = resident?.Name
         };
     }
 
@@ -116,6 +129,15 @@ public class ApartmentService : IApartmentService
 
         if (await _repository.ApartmentNumberExistsAsync(dto.FloorId, dto.ApartmentNumber, excludeId))
             throw new InvalidOperationException("An apartment with this number already exists on this floor.");
+
+        var task = dto.CleaningTaskId.HasValue
+            ? await _cleaningTaskRepository.GetByIdAsync(dto.CleaningTaskId.Value)
+            : null;
+        if (task == null)
+            throw new InvalidOperationException("Apartment must have an existing cleaning task.");
+
+        if (task.TaskCategory != CleaningTaskCategory.Apartment && task.TaskCategory != CleaningTaskCategory.SpecialTask)
+            throw new InvalidOperationException("Apartments can only use Apartment or Special Task cleaning tasks.");
     }
 
     private static void Normalize(ApartmentRequestDto dto)

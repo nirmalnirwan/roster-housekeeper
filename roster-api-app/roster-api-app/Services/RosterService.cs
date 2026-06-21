@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using roster_api_app.DTOs;
 using roster_api_app.Entities;
 using roster_api_app.Repositories;
@@ -35,9 +37,9 @@ public class RosterService : IRosterService
         return roster == null ? null : MapToDto(roster);
     }
 
-    public async Task<RosterDto?> GetByWeekStartDateAsync(DateTime weekStartDate)
+    public async Task<RosterDto?> GetByHousekeeperAndWeekAsync(int housekeeperId, DateTime weekStartDate)
     {
-        var roster = await _repository.GetByWeekStartDateAsync(weekStartDate);
+        var roster = await _repository.GetByHousekeeperAndWeekAsync(housekeeperId, weekStartDate.Date);
         return roster == null ? null : MapToDto(roster);
     }
 
@@ -46,19 +48,27 @@ public class RosterService : IRosterService
         Normalize(dto);
         await ValidateRosterAsync(dto);
 
-        var existing = await _repository.GetByWeekStartDateAsync(dto.WeekStartDate);
+        var existing = await _repository.GetByHousekeeperAndWeekAsync(dto.HousekeeperId, dto.WeekStartDate);
         if (existing != null)
-            throw new InvalidOperationException("A roster already exists for this week.");
+            throw new InvalidOperationException("A roster already exists for this housekeeper and week.");
 
         var roster = new Roster
         {
+            HousekeeperId = dto.HousekeeperId,
             WeekStartDate = dto.WeekStartDate,
             CreatedBy = dto.CreatedBy,
             CreatedDate = dto.CreatedDate == default ? DateTime.UtcNow : dto.CreatedDate,
             RosterTasks = dto.RosterTasks.Select(MapToEntity).ToList()
         };
 
-        await _repository.AddAsync(roster);
+        try
+        {
+            await _repository.AddAsync(roster);
+        }
+        catch (DbUpdateException ex) when (IsDuplicateRoster(ex))
+        {
+            throw new InvalidOperationException("A roster already exists for this housekeeper and week.", ex);
+        }
         var created = await _repository.GetByIdAsync(roster.Id);
         return MapToDto(created!);
     }
@@ -71,17 +81,25 @@ public class RosterService : IRosterService
         Normalize(dto);
         await ValidateRosterAsync(dto);
 
-        var existingForWeek = await _repository.GetByWeekStartDateAsync(dto.WeekStartDate);
+        var existingForWeek = await _repository.GetByHousekeeperAndWeekAsync(dto.HousekeeperId, dto.WeekStartDate);
         if (existingForWeek != null && existingForWeek.Id != id)
-            throw new InvalidOperationException("A roster already exists for this week.");
+            throw new InvalidOperationException("A roster already exists for this housekeeper and week.");
 
+        roster.HousekeeperId = dto.HousekeeperId;
         roster.WeekStartDate = dto.WeekStartDate;
         roster.CreatedBy = dto.CreatedBy;
         roster.CreatedDate = dto.CreatedDate == default ? roster.CreatedDate : dto.CreatedDate;
         roster.RosterTasks.Clear();
         roster.RosterTasks = dto.RosterTasks.Select(MapToEntity).ToList();
 
-        await _repository.UpdateAsync(roster);
+        try
+        {
+            await _repository.UpdateAsync(roster);
+        }
+        catch (DbUpdateException ex) when (IsDuplicateRoster(ex))
+        {
+            throw new InvalidOperationException("A roster already exists for this housekeeper and week.", ex);
+        }
     }
 
     public async Task DeleteAsync(int id)
@@ -104,9 +122,21 @@ public class RosterService : IRosterService
         if (dto.WeekStartDate == default)
             throw new InvalidOperationException("Week start date is required.");
 
+        if (dto.HousekeeperId <= 0)
+            throw new InvalidOperationException("Housekeeper is required for every roster.");
+
+        if (await _housekeeperRepository.GetByIdAsync(dto.HousekeeperId) == null)
+            throw new InvalidOperationException("Roster references an invalid housekeeper.");
+
         foreach (var task in dto.RosterTasks)
         {
             await ValidateRosterTaskAsync(task);
+
+            if (task.HousekeeperId != dto.HousekeeperId)
+                throw new InvalidOperationException("Every roster task must belong to the roster housekeeper.");
+
+            if (task.ScheduledDate.Date < dto.WeekStartDate || task.ScheduledDate.Date >= dto.WeekStartDate.AddDays(7))
+                throw new InvalidOperationException("Every roster task must fall within the roster week.");
         }
 
         var overlaps = dto.RosterTasks
@@ -144,14 +174,44 @@ public class RosterService : IRosterService
         if (assignedAreaCount != 1)
             throw new InvalidOperationException("Each roster task must be assigned to one cleaning area.");
 
-        if (task.CommonAreaId.HasValue && await _areaRepository.GetCommonAreaByIdAsync(task.CommonAreaId.Value) == null)
-            throw new InvalidOperationException("Roster task references an invalid common area.");
+        if (task.CommonAreaId.HasValue)
+        {
+            var area = await _areaRepository.GetCommonAreaByIdAsync(task.CommonAreaId.Value);
+            if (area == null)
+                throw new InvalidOperationException("Roster task references an invalid common area.");
+            if (area.CleaningTaskId.HasValue && area.CleaningTaskId != task.TaskId)
+                throw new InvalidOperationException("Roster task must use the cleaning task mapped to the common area.");
+            if (task.ResidentId.HasValue)
+                throw new InvalidOperationException("Common areas cannot be assigned to residents.");
+        }
 
-        if (task.UnitId.HasValue && await _areaRepository.GetUnitByIdAsync(task.UnitId.Value) == null)
-            throw new InvalidOperationException("Roster task references an invalid unit.");
+        if (task.UnitId.HasValue)
+        {
+            var unit = await _areaRepository.GetUnitByIdAsync(task.UnitId.Value);
+            if (unit == null)
+                throw new InvalidOperationException("Roster task references an invalid unit.");
+            if (unit.CleaningTaskId.HasValue && unit.CleaningTaskId != task.TaskId)
+                throw new InvalidOperationException("Roster task must use the cleaning task mapped to the unit.");
 
-        if (task.ApartmentId.HasValue && await _areaRepository.GetApartmentByIdAsync(task.ApartmentId.Value) == null)
-            throw new InvalidOperationException("Roster task references an invalid apartment.");
+            var mappedResident = unit.Residents.OrderBy(resident => resident.Id).FirstOrDefault();
+            task.ResidentId ??= mappedResident?.Id;
+            if (task.ResidentId.HasValue && unit.Residents.All(resident => resident.Id != task.ResidentId.Value))
+                throw new InvalidOperationException("Roster task resident is not assigned to the selected unit.");
+        }
+
+        if (task.ApartmentId.HasValue)
+        {
+            var apartment = await _areaRepository.GetApartmentByIdAsync(task.ApartmentId.Value);
+            if (apartment == null)
+                throw new InvalidOperationException("Roster task references an invalid apartment.");
+            if (apartment.CleaningTaskId.HasValue && apartment.CleaningTaskId != task.TaskId)
+                throw new InvalidOperationException("Roster task must use the cleaning task mapped to the apartment.");
+
+            var mappedResident = apartment.Residents.OrderBy(resident => resident.Id).FirstOrDefault();
+            task.ResidentId ??= mappedResident?.Id;
+            if (task.ResidentId.HasValue && apartment.Residents.All(resident => resident.Id != task.ResidentId.Value))
+                throw new InvalidOperationException("Roster task resident is not assigned to the selected apartment.");
+        }
     }
 
     private static void Normalize(RosterDto dto)
@@ -192,6 +252,8 @@ public class RosterService : IRosterService
         return new RosterDto
         {
             Id = roster.Id,
+            HousekeeperId = roster.HousekeeperId,
+            HousekeeperName = roster.Housekeeper?.Name ?? string.Empty,
             WeekStartDate = roster.WeekStartDate,
             CreatedBy = roster.CreatedBy,
             CreatedDate = roster.CreatedDate,
@@ -233,6 +295,15 @@ public class RosterService : IRosterService
             EndTime = task.EndTime,
             FrequencyType = task.FrequencyType,
             Notes = task.Notes
+        };
+    }
+
+    private static bool IsDuplicateRoster(DbUpdateException exception)
+    {
+        return exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: "IX_Rosters_HousekeeperId_WeekStartDate"
         };
     }
 }

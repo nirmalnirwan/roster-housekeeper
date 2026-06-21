@@ -31,6 +31,7 @@ import {
   updateCommonArea,
   updateUnit,
 } from '@/app/services/areaService';
+import { getCleaningTasks } from '@/app/services/cleaningTaskService';
 import useRequireAuth from '../hooks/useRequireAuth';
 import {
   createBuildingBlock,
@@ -53,6 +54,7 @@ import type {
   BuildingBlockRequest,
   CommonArea,
   CommonAreaRequest,
+  CleaningTask,
   Floor,
   FloorRequest,
   LocationType,
@@ -67,13 +69,14 @@ type AreaItem = CommonArea | Unit | Apartment;
 
 type BuildingFormErrors = Partial<Record<keyof BuildingFormState, string>>;
 type FloorFormErrors = Partial<Record<keyof FloorFormState, string>>;
-type AreaFormErrors = Partial<Record<'name' | 'number' | 'floorId', string>>;
+type AreaFormErrors = Partial<Record<'name' | 'number' | 'floorId' | 'cleaningTaskId', string>>;
 
 interface AreaFormState {
   name: string;
   number: string;
   notes: string;
   floorId: number;
+  cleaningTaskId: number;
 }
 
 interface FloorOption extends Floor {
@@ -96,6 +99,7 @@ const initialAreaForm: AreaFormState = {
   number: '',
   notes: '',
   floorId: 0,
+  cleaningTaskId: 0,
 };
 
 const areaMeta: Record<AreaKind, { label: string; plural: string; numberLabel?: string }> = {
@@ -111,6 +115,7 @@ export default function LocationsPage() {
   const [commonAreas, setCommonAreas] = useState<CommonArea[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [cleaningTasks, setCleaningTasks] = useState<CleaningTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -143,6 +148,7 @@ export default function LocationsPage() {
           setCommonAreas(data.commonAreas);
           setUnits(data.units);
           setApartments(data.apartments);
+          setCleaningTasks(data.cleaningTasks);
           setLoadError(null);
         }
       } catch (error) {
@@ -182,6 +188,10 @@ export default function LocationsPage() {
   const commonAreasByFloor = useMemo(() => groupByFloor(commonAreas), [commonAreas]);
   const unitsByFloor = useMemo(() => groupByFloor(units), [units]);
   const apartmentsByFloor = useMemo(() => groupByFloor(apartments), [apartments]);
+  const compatibleCleaningTasks = useMemo(
+    () => getCompatibleCleaningTasks(cleaningTasks, areaKind),
+    [areaKind, cleaningTasks]
+  );
 
   const refreshWorkspace = async () => {
     const data = await loadLocationWorkspace();
@@ -189,6 +199,7 @@ export default function LocationsPage() {
     setCommonAreas(data.commonAreas);
     setUnits(data.units);
     setApartments(data.apartments);
+    setCleaningTasks(data.cleaningTasks);
   };
 
   const isCollapsed = (key: string) => !expandedSections.has(key);
@@ -261,10 +272,12 @@ export default function LocationsPage() {
   };
 
   const openCreateAreaForm = (kind: AreaKind, floorId: number) => {
+    const availableTasks = getCompatibleCleaningTasks(cleaningTasks, kind);
     setAreaKind(kind);
     setAreaForm({
       ...initialAreaForm,
       floorId,
+      cleaningTaskId: availableTasks[0]?.id ?? 0,
     });
     setAreaErrors({});
     setEditingAreaId(null);
@@ -278,6 +291,7 @@ export default function LocationsPage() {
       number: getAreaNumber(kind, item),
       notes: 'description' in item ? item.description : item.notes,
       floorId: item.floorId,
+      cleaningTaskId: item.cleaningTaskId ?? 0,
     });
     setAreaErrors({});
     setEditingAreaId(item.id);
@@ -410,6 +424,8 @@ export default function LocationsPage() {
                 ...area,
                 name: form.name,
                 description: form.notes,
+                cleaningTaskId: form.cleaningTaskId,
+                cleaningTaskName: cleaningTasks.find((task) => task.id === form.cleaningTaskId)?.name,
               }
             : area
         )
@@ -426,6 +442,8 @@ export default function LocationsPage() {
                 name: form.name,
                 unitNumber: form.number,
                 notes: form.notes,
+                cleaningTaskId: form.cleaningTaskId,
+                cleaningTaskName: cleaningTasks.find((task) => task.id === form.cleaningTaskId)?.name,
               }
             : unit
         )
@@ -441,6 +459,8 @@ export default function LocationsPage() {
               name: form.name,
               apartmentNumber: form.number,
               notes: form.notes,
+              cleaningTaskId: form.cleaningTaskId,
+              cleaningTaskName: cleaningTasks.find((task) => task.id === form.cleaningTaskId)?.name,
             }
           : apartment
       )
@@ -717,6 +737,28 @@ export default function LocationsPage() {
                     aria-invalid={Boolean(areaErrors.name)}
                     disabled={submitting}
                   />
+                </Field>
+
+                <Field label="Cleaning task" error={areaErrors.cleaningTaskId}>
+                  <select
+                    value={areaForm.cleaningTaskId}
+                    onChange={(event) =>
+                      setAreaForm((current) => ({
+                        ...current,
+                        cleaningTaskId: Number(event.target.value),
+                      }))
+                    }
+                    className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
+                    aria-invalid={Boolean(areaErrors.cleaningTaskId)}
+                    disabled={submitting}
+                  >
+                    <option value={0}>Select cleaning task</option>
+                    {compatibleCleaningTasks.map((task) => (
+                      <option key={task.id} value={task.id}>
+                        {task.name}{task.taskCategory === 'SpecialTask' ? ' (Special)' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
                 {areaMeta[areaKind].numberLabel && (
@@ -1068,14 +1110,15 @@ function Field({
 }
 
 async function loadLocationWorkspace() {
-  const [locationTypes, commonAreas, units, apartments] = await Promise.all([
+  const [locationTypes, commonAreas, units, apartments, cleaningTasks] = await Promise.all([
     getLocationTypes(),
     getCommonAreas(),
     getUnits(),
     getApartments(),
+    getCleaningTasks(),
   ]);
 
-  return { locationTypes, commonAreas, units, apartments };
+  return { locationTypes, commonAreas, units, apartments, cleaningTasks };
 }
 
 function groupByFloor<TItem extends { floorId: number }>(items: TItem[]) {
@@ -1108,10 +1151,16 @@ function getAreaNumber(kind: AreaKind, item: AreaItem) {
 }
 
 function getAreaSubtext(kind: AreaKind, item: AreaItem) {
-  if (kind === 'commonArea' && 'description' in item) return item.description || 'No description';
-  if (kind === 'unit' && 'unitNumber' in item) return `Unit ${item.unitNumber}`;
-  if (kind === 'apartment' && 'apartmentNumber' in item) return `Apartment ${item.apartmentNumber}`;
-  return '';
+  let detail = '';
+  if (kind === 'commonArea' && 'description' in item) detail = item.description || 'No description';
+  if (kind === 'unit' && 'unitNumber' in item) detail = `Unit ${item.unitNumber}`;
+  if (kind === 'apartment' && 'apartmentNumber' in item) detail = `Apartment ${item.apartmentNumber}`;
+  return `${detail} / ${item.cleaningTaskName || 'No cleaning task assigned'}`;
+}
+
+function getCompatibleCleaningTasks(tasks: CleaningTask[], kind: AreaKind) {
+  const category = kind === 'commonArea' ? 'CommunityArea' : kind === 'unit' ? 'Unit' : 'Apartment';
+  return tasks.filter((task) => task.taskCategory === category || task.taskCategory === 'SpecialTask');
 }
 
 async function createArea(kind: AreaKind, form: AreaFormState): Promise<AreaItem> {
@@ -1120,6 +1169,7 @@ async function createArea(kind: AreaKind, form: AreaFormState): Promise<AreaItem
       name: form.name,
       description: form.notes,
       floorId: form.floorId,
+      cleaningTaskId: form.cleaningTaskId,
     };
     return createCommonArea(payload);
   }
@@ -1130,6 +1180,7 @@ async function createArea(kind: AreaKind, form: AreaFormState): Promise<AreaItem
       unitNumber: form.number,
       notes: form.notes,
       floorId: form.floorId,
+      cleaningTaskId: form.cleaningTaskId,
     };
     return createUnit(payload);
   }
@@ -1139,6 +1190,7 @@ async function createArea(kind: AreaKind, form: AreaFormState): Promise<AreaItem
     apartmentNumber: form.number,
     notes: form.notes,
     floorId: form.floorId,
+    cleaningTaskId: form.cleaningTaskId,
   };
   return createApartment(payload);
 }
@@ -1149,6 +1201,7 @@ async function updateArea(kind: AreaKind, id: number, form: AreaFormState) {
       name: form.name,
       description: form.notes,
       floorId: form.floorId,
+      cleaningTaskId: form.cleaningTaskId,
     };
     await updateCommonArea(id, payload);
     return;
@@ -1160,6 +1213,7 @@ async function updateArea(kind: AreaKind, id: number, form: AreaFormState) {
       unitNumber: form.number,
       notes: form.notes,
       floorId: form.floorId,
+      cleaningTaskId: form.cleaningTaskId,
     };
     await updateUnit(id, payload);
     return;
@@ -1170,6 +1224,7 @@ async function updateArea(kind: AreaKind, id: number, form: AreaFormState) {
     apartmentNumber: form.number,
     notes: form.notes,
     floorId: form.floorId,
+    cleaningTaskId: form.cleaningTaskId,
   };
   await updateApartment(id, payload);
 }
@@ -1213,6 +1268,7 @@ function validateAreaForm(form: AreaFormState, kind: AreaKind): AreaFormErrors {
   const errors: AreaFormErrors = {};
 
   if (!form.floorId) errors.floorId = 'Floor is required.';
+  if (!form.cleaningTaskId) errors.cleaningTaskId = 'Cleaning task is required.';
   if (!form.name) errors.name = `${areaMeta[kind].label} name is required.`;
   if (kind !== 'commonArea' && !form.number) {
     errors.number = `${areaMeta[kind].numberLabel} is required.`;

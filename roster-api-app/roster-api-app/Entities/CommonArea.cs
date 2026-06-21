@@ -7,4 +7,6 @@ public class CommonArea
     public string Description { get; set; } = string.Empty;
     public int FloorId { get; set; }
     public Floor Floor { get; set; } = null!;
+    public int? CleaningTaskId { get; set; }
+    public CleaningTask? CleaningTask { get; set; }
 }

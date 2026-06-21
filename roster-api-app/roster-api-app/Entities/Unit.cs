@@ -8,5 +8,7 @@ public class Unit
     public string Notes { get; set; } = string.Empty;
     public int FloorId { get; set; }
     public Floor Floor { get; set; } = null!;
+    public int? CleaningTaskId { get; set; }
+    public CleaningTask? CleaningTask { get; set; }
     public ICollection<Resident> Residents { get; set; } = new List<Resident>();
 }

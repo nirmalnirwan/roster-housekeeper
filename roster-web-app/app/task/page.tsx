@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Edit, Filter, Loader2, Plus, Trash2, X } from 'lucide-react';
+import { Building2, Clock3, DoorOpen, Edit, Filter, Home, Loader2, Plus, Repeat2, Sparkles, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import useRequireAuth from '../hooks/useRequireAuth';
@@ -24,7 +24,7 @@ type FormErrors = Partial<Record<keyof FormState, string>>;
 const taskCategories: Array<{ value: CleaningTaskCategory; label: string }> = [
   { value: 'CommunityArea', label: 'Community Areas' },
   { value: 'Apartment', label: 'Apartments' },
-  { value: 'UnitOrRoom', label: 'Units / Resident Rooms' },
+  { value: 'Unit', label: 'Units' },
   { value: 'SpecialTask', label: 'Special Tasks' },
 ];
 
@@ -315,54 +315,45 @@ export default function TaskPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-3">
         {visibleTasks.length === 0 ? (
-          <div className="col-span-full rounded-lg bg-slate-50 py-12 text-center dark:bg-slate-800">
+          <div className="rounded-lg bg-slate-50 py-12 text-center dark:bg-slate-800">
             <p className="text-gray-600 dark:text-gray-400">No cleaning tasks found</p>
           </div>
         ) : (
           visibleTasks.map((task) => (
-            <Card key={task.id} className="transition hover:shadow-md">
-              <CardHeader>
-                <CardTitle className="space-y-3">
-                  <span className="block truncate">{task.name}</span>
-                  <Badge variant="secondary">{getCategoryLabel(task.taskCategory)}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="min-h-10 text-sm text-gray-600 dark:text-gray-400">
-                  {task.description || 'No description'}
-                </p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">Duration</div>
-                    <div className="font-medium">{task.estimatedDuration} min</div>
+            <Card key={task.id} className="transition hover:border-slate-300 hover:shadow-sm">
+              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                <TaskCategoryIcon category={task.taskCategory} />
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <h2 className="truncate text-base font-semibold">{task.name}</h2>
+                    <Badge variant="secondary">{getCategoryLabel(task.taskCategory)}</Badge>
                   </div>
-                  <div>
-                    <div className="text-muted-foreground">Frequency</div>
-                    <div className="font-medium">{task.frequency}</div>
-                  </div>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{task.description || 'No description'}</p>
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm sm:justify-end">
+                  <span className="flex items-center gap-1.5 text-muted-foreground"><Clock3 className="h-4 w-4" /><strong className="font-medium text-foreground">{task.estimatedDuration} min</strong></span>
+                  <span className="flex items-center gap-1.5 text-muted-foreground"><Repeat2 className="h-4 w-4" /><strong className="font-medium text-foreground">{task.frequency}</strong></span>
                   <Button
-                    size="sm"
+                    size="icon-sm"
                     variant="outline"
-                    className="flex-1"
                     onClick={() => openEditForm(task)}
                     disabled={submitting}
+                    aria-label={`Edit ${task.name}`}
+                    title="Edit cleaning task"
                   >
                     <Edit className="h-4 w-4" />
-                    Edit
                   </Button>
                   <Button
-                    size="sm"
+                    size="icon-sm"
                     variant="destructive"
-                    className="flex-1"
                     onClick={() => handleDelete(task)}
                     disabled={submitting}
+                    aria-label={`Remove ${task.name}`}
+                    title="Remove cleaning task"
                   >
                     <Trash2 className="h-4 w-4" />
-                    Remove
                   </Button>
                 </div>
               </CardContent>
@@ -421,4 +412,20 @@ function validateForm(form: FormState): FormErrors {
 
 function getCategoryLabel(category: CleaningTaskCategory): string {
   return taskCategories.find((item) => item.value === category)?.label ?? category;
+}
+
+function TaskCategoryIcon({ category }: { category: CleaningTaskCategory }) {
+  const Icon = category === 'CommunityArea'
+    ? Building2
+    : category === 'Unit'
+      ? DoorOpen
+      : category === 'Apartment'
+        ? Home
+        : Sparkles;
+
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-200">
+      <Icon className="h-5 w-5" />
+    </div>
+  );
 }

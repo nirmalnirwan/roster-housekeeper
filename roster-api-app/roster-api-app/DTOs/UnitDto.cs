@@ -12,4 +12,8 @@ public class UnitDto
     public string BuildingBlockName { get; set; } = string.Empty;
     public int LocationTypeId { get; set; }
     public string LocationTypeName { get; set; } = string.Empty;
+    public int? CleaningTaskId { get; set; }
+    public string? CleaningTaskName { get; set; }
+    public int? ResidentId { get; set; }
+    public string? ResidentName { get; set; }
 }

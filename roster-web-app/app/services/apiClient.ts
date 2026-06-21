@@ -10,7 +10,7 @@ interface ApiErrorResponse {
   title?: string;
 }
 
-async function request(path: string, options: RequestInit = {}) {
+async function request(path: string, options: RequestInit = {}, allowedStatuses: number[] = []) {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ async function request(path: string, options: RequestInit = {}) {
     }
   }
 
-  if (!res.ok) {
+  if (!res.ok && !allowedStatuses.includes(res.status)) {
     // attempt to read body for error message
     throw new Error(await readErrorMessage(res));
   }
@@ -50,6 +50,7 @@ async function request(path: string, options: RequestInit = {}) {
 
 export const apiClient = {
   get: (path: string) => request(path, { method: 'GET' }),
+  getOptional: (path: string) => request(path, { method: 'GET' }, [404]),
   post: (path: string, body?: JsonBody) =>
     request(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
   put: (path: string, body?: JsonBody) =>

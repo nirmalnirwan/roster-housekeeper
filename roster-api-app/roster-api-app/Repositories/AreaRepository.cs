@@ -151,6 +151,7 @@ public class AreaRepository : IAreaRepository
     private IQueryable<CommonArea> IncludeCommonAreas()
     {
         return _context.CommonAreas
+            .Include(ca => ca.CleaningTask)
             .Include(ca => ca.Floor)
             .ThenInclude(f => f.BuildingBlock)
             .ThenInclude(bb => bb.LocationType)
@@ -163,6 +164,8 @@ public class AreaRepository : IAreaRepository
     private IQueryable<Unit> IncludeUnits()
     {
         return _context.Units
+            .Include(u => u.CleaningTask)
+            .Include(u => u.Residents)
             .Include(u => u.Floor)
             .ThenInclude(f => f.BuildingBlock)
             .ThenInclude(bb => bb.LocationType)
@@ -175,6 +178,8 @@ public class AreaRepository : IAreaRepository
     private IQueryable<Apartment> IncludeApartments()
     {
         return _context.Apartments
+            .Include(a => a.CleaningTask)
+            .Include(a => a.Residents)
             .Include(a => a.Floor)
             .ThenInclude(f => f.BuildingBlock)
             .ThenInclude(bb => bb.LocationType)

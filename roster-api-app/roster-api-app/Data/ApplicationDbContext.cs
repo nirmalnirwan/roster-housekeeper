@@ -92,6 +92,12 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(ca => ca.FloorId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<CommonArea>()
+            .HasOne(ca => ca.CleaningTask)
+            .WithMany(task => task.CommonAreas)
+            .HasForeignKey(ca => ca.CleaningTaskId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<Unit>()
             .Property(u => u.Name)
             .HasMaxLength(100)
@@ -111,6 +117,12 @@ public class ApplicationDbContext : DbContext
             .WithMany(f => f.Units)
             .HasForeignKey(u => u.FloorId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Unit>()
+            .HasOne(u => u.CleaningTask)
+            .WithMany(task => task.Units)
+            .HasForeignKey(u => u.CleaningTaskId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Apartment>()
             .Property(a => a.Name)
@@ -132,6 +144,12 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(a => a.FloorId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<Apartment>()
+            .HasOne(a => a.CleaningTask)
+            .WithMany(task => task.Apartments)
+            .HasForeignKey(a => a.CleaningTaskId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         modelBuilder.Entity<Resident>()
             .HasOne(r => r.Unit)
             .WithMany(u => u.Residents)
@@ -145,6 +163,16 @@ public class ApplicationDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure relationships
+        modelBuilder.Entity<Roster>()
+            .HasOne(r => r.Housekeeper)
+            .WithMany(h => h.Rosters)
+            .HasForeignKey(r => r.HousekeeperId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Roster>()
+            .HasIndex(r => new { r.HousekeeperId, r.WeekStartDate })
+            .IsUnique();
+
         modelBuilder.Entity<RosterTask>()
             .HasOne(rt => rt.Roster)
             .WithMany(r => r.RosterTasks)

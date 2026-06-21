@@ -2,12 +2,11 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
-import type { EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
+import type { DatesSetArg, EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
 import type { EventReceiveArg, EventResizeDoneArg } from '@fullcalendar/interaction';
-import { CalendarDays, Clock, Loader2, Trash2, X } from 'lucide-react';
+import { Building2, CalendarDays, ChevronDown, Clock, DoorOpen, Home, Layers, Loader2, MapPin, Sparkles, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import useRequireAuth from '../hooks/useRequireAuth';
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ROSTER_AREA_STYLES } from '@/lib/rosterAreaStyles';
 import type {
   Apartment,
   CleaningTask,
@@ -36,7 +36,22 @@ type CleaningArea = {
   name: string;
   areaType: RosterAreaType;
   subtitle: string;
+  cleaningTaskId?: number;
+  cleaningTaskName?: string;
+  cleaningTaskDuration?: number;
+  residentId?: number;
+  residentName?: string;
+  locationTypeId: number;
+  locationTypeName: string;
+  buildingBlockId: number;
+  buildingBlockName: string;
+  floorId: number;
+  floorName: string;
 };
+
+type AreaFloorNode = { id: number; name: string; areas: CleaningArea[] };
+type AreaBuildingNode = { id: number; name: string; floors: AreaFloorNode[] };
+type AreaLocationNode = { id: number; name: string; buildings: AreaBuildingNode[] };
 
 type EditForm = {
   taskId: number;
@@ -46,6 +61,8 @@ type EditForm = {
   endTime: string;
   notes: string;
 };
+
+const CALENDAR_FIRST_DAY = 1;
 
 const initialEditForm: EditForm = {
   taskId: 0,
@@ -65,14 +82,14 @@ export default function RosterPage() {
   const [cleaningTasks, setCleaningTasks] = useState<CleaningTask[]>([]);
   const [areas, setAreas] = useState<CleaningArea[]>([]);
   const [selectedHousekeeperId, setSelectedHousekeeperId] = useState(0);
-  const [selectedTaskId, setSelectedTaskId] = useState(0);
   const [weekStartDate, setWeekStartDate] = useState(() => toDateInput(getStartOfWeek(new Date())));
-  const [defaultDuration, setDefaultDuration] = useState(60);
   const [areaFilter, setAreaFilter] = useState<RosterAreaType | 'All'>('All');
   const [loading, setLoading] = useState(true);
+  const [loadingRoster, setLoadingRoster] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingTask, setEditingTask] = useState<RosterTask | null>(null);
   const [editForm, setEditForm] = useState<EditForm>(initialEditForm);
+  const [expandedAreaSections, setExpandedAreaSections] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     let active = true;
@@ -91,9 +108,8 @@ export default function RosterPage() {
 
         setHousekeepers(housekeeperData);
         setCleaningTasks(cleaningTaskData);
-        setAreas(buildCleaningAreas(commonAreaData, unitData, apartmentData));
+        setAreas(buildCleaningAreas(commonAreaData, unitData, apartmentData, cleaningTaskData));
         setSelectedHousekeeperId(housekeeperData[0]?.id ?? 0);
-        setSelectedTaskId(cleaningTaskData[0]?.id ?? 0);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to load roster builder data.');
       } finally {
@@ -112,11 +128,21 @@ export default function RosterPage() {
     let active = true;
 
     async function loadRosterForWeek() {
+      if (!selectedHousekeeperId) {
+        setCurrentRoster(null);
+        setLoadingRoster(false);
+        return;
+      }
+
+      setCurrentRoster(null);
+      setLoadingRoster(true);
       try {
-        const roster = await getRosterByWeek(toApiDate(parseDateInput(weekStartDate)));
+        const roster = await getRosterByWeek(selectedHousekeeperId, toApiDate(parseDateInput(weekStartDate)));
         if (active) setCurrentRoster(roster);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to load roster for selected week.');
+      } finally {
+        if (active) setLoadingRoster(false);
       }
     }
 
@@ -125,7 +151,7 @@ export default function RosterPage() {
     return () => {
       active = false;
     };
-  }, [weekStartDate]);
+  }, [selectedHousekeeperId, weekStartDate]);
 
   useEffect(() => {
     const container = externalAreasRef.current;
@@ -133,56 +159,77 @@ export default function RosterPage() {
 
     const draggable = new Draggable(container, {
       itemSelector: '.fc-external-area',
-      eventData: (eventEl: HTMLElement) => ({
-        title: eventEl.dataset.title ?? 'Cleaning area',
-        duration: minutesToDuration(defaultDuration),
-        extendedProps: {
-          areaId: Number(eventEl.dataset.areaId),
-          areaType: eventEl.dataset.areaType as RosterAreaType,
-          areaName: eventEl.dataset.areaName ?? '',
-        },
-      }),
+      eventData: (eventEl: HTMLElement) => {
+        const duration = positiveDuration(Number(eventEl.dataset.taskDuration));
+        const areaType = eventEl.dataset.areaType as RosterAreaType;
+        const style = ROSTER_AREA_STYLES[areaType];
+        return {
+          title: eventEl.dataset.title ?? 'Cleaning area',
+          duration: minutesToDuration(duration),
+          backgroundColor: style.eventBackgroundColor,
+          borderColor: style.eventBorderColor,
+          textColor: style.eventTextColor,
+          extendedProps: {
+            areaId: Number(eventEl.dataset.areaId),
+            areaType,
+            areaName: eventEl.dataset.areaName ?? '',
+          },
+        };
+      },
     });
 
     return () => draggable.destroy();
-  }, [defaultDuration, areas]);
+  }, [areas]);
 
   const activeHousekeeper = housekeepers.find((housekeeper) => housekeeper.id === selectedHousekeeperId);
-  const selectedCleaningTask = cleaningTasks.find((task) => task.id === selectedTaskId);
 
   const visibleAreas = useMemo(
     () => areas.filter((area) => areaFilter === 'All' || area.areaType === areaFilter),
     [areas, areaFilter]
   );
 
-  const visibleTasks = useMemo(
-    () =>
-      currentRoster?.rosterTasks.filter((task) =>
-        selectedHousekeeperId ? task.housekeeperId === selectedHousekeeperId : true
-      ) ?? [],
-    [currentRoster, selectedHousekeeperId]
-  );
+  const visibleTasks = useMemo(() => currentRoster?.rosterTasks ?? [], [currentRoster]);
+  const areaHierarchy = useMemo(() => buildAreaHierarchy(visibleAreas), [visibleAreas]);
 
   const calendarEvents = useMemo(() => mapTasksToEvents(visibleTasks), [visibleTasks]);
 
-  async function saveRosterTasks(tasks: RosterTask[]) {
+  function toggleAreaSection(key: string) {
+    setExpandedAreaSections((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  async function saveRosterTasks(
+    tasks: RosterTask[],
+    targetWeekStartDate = weekStartDate,
+    targetRoster = currentRoster
+  ) {
+    if (!activeHousekeeper) {
+      throw new Error('Select a housekeeper before saving the roster.');
+    }
+
     const payload: Roster = {
-      id: currentRoster?.id ?? 0,
-      weekStartDate: toApiDate(parseDateInput(weekStartDate)),
-      createdBy: currentRoster?.createdBy || 'Admin',
-      createdDate: currentRoster?.createdDate || new Date().toISOString(),
+      id: targetRoster?.id ?? 0,
+      housekeeperId: activeHousekeeper.id,
+      housekeeperName: activeHousekeeper.name,
+      weekStartDate: toApiDate(parseDateInput(targetWeekStartDate)),
+      createdBy: targetRoster?.createdBy || 'Admin',
+      createdDate: targetRoster?.createdDate || new Date().toISOString(),
       rosterTasks: tasks.map((task) => ({
         ...task,
         id: task.id > 0 ? task.id : 0,
-        rosterId: currentRoster?.id ?? 0,
+        rosterId: targetRoster?.id ?? 0,
       })),
     };
 
     setSaving(true);
     try {
-      if (currentRoster?.id) {
-        await updateRoster(currentRoster.id, payload);
-        setCurrentRoster(await getRoster(currentRoster.id));
+      if (targetRoster?.id) {
+        await updateRoster(targetRoster.id, payload);
+        setCurrentRoster(await getRoster(targetRoster.id));
       } else {
         const created = await createRoster(payload);
         setCurrentRoster(created);
@@ -201,11 +248,6 @@ export default function RosterPage() {
       return;
     }
 
-    if (!selectedCleaningTask) {
-      toast.error('Select a cleaning task before scheduling.');
-      return;
-    }
-
     if (!info.event.start) {
       toast.error('Drop the area onto a valid timetable slot.');
       return;
@@ -221,11 +263,17 @@ export default function RosterPage() {
       return;
     }
 
+    const assignedCleaningTask = cleaningTasks.find((task) => task.id === droppedArea.cleaningTaskId);
+    if (!assignedCleaningTask) {
+      toast.error('Assign a cleaning task to this area in Locations before scheduling it.');
+      return;
+    }
+
     const start = info.event.start;
-    const end = info.event.end ?? addMinutes(start, defaultDuration);
+    const end = addMinutes(start, positiveDuration(assignedCleaningTask.estimatedDuration));
     const task = buildRosterTask({
       area: droppedArea,
-      cleaningTask: selectedCleaningTask,
+      cleaningTask: assignedCleaningTask,
       housekeeper: activeHousekeeper,
       scheduledDate: start,
       start,
@@ -234,10 +282,27 @@ export default function RosterPage() {
     });
 
     try {
-      await saveRosterTasks([...(currentRoster?.rosterTasks ?? []), task]);
+      const droppedWeekStartDate = toDateInput(getStartOfWeek(start));
+      const rosterForDroppedWeek = isRosterForWeek(currentRoster, activeHousekeeper.id, droppedWeekStartDate)
+        ? currentRoster
+        : await getRosterByWeek(activeHousekeeper.id, toApiDate(parseDateInput(droppedWeekStartDate)));
+
+      await saveRosterTasks(
+        [...(rosterForDroppedWeek?.rosterTasks ?? []), task],
+        droppedWeekStartDate,
+        rosterForDroppedWeek
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to schedule task.');
     }
+  }
+
+  function handleCalendarDatesSet(info: DatesSetArg) {
+    const visibleWeekStartDate = toDateInput(getStartOfWeek(info.start));
+    if (visibleWeekStartDate === weekStartDate) return;
+
+    setCurrentRoster(null);
+    setWeekStartDate(visibleWeekStartDate);
   }
 
   async function handleEventDrop(change: EventDropArg) {
@@ -296,8 +361,7 @@ export default function RosterPage() {
     }
 
     const selectedTask = cleaningTasks.find((task) => task.id === editForm.taskId);
-    const selectedHousekeeper = housekeepers.find((housekeeper) => housekeeper.id === editForm.housekeeperId);
-    if (!selectedTask || !selectedHousekeeper) {
+    if (!selectedTask || !activeHousekeeper) {
       toast.error('Select a valid housekeeper and cleaning task.');
       return;
     }
@@ -308,8 +372,8 @@ export default function RosterPage() {
             ...task,
             taskId: selectedTask.id,
             taskName: selectedTask.name,
-            housekeeperId: selectedHousekeeper.id,
-            housekeeperName: selectedHousekeeper.name,
+            housekeeperId: activeHousekeeper.id,
+            housekeeperName: activeHousekeeper.name,
             scheduledDate: toApiDate(start),
             startTime: toTime(start),
             endTime: toTime(end),
@@ -357,50 +421,24 @@ export default function RosterPage() {
             Build weekly housekeeper timetables by dragging cleaning areas into time slots.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <label className="space-y-2 text-sm font-medium">
-            Week
-            <Input type="date" value={weekStartDate} onChange={(event) => setWeekStartDate(event.target.value)} />
-          </label>
+        <div className="grid gap-3">
           <label className="space-y-2 text-sm font-medium">
             Housekeeper
             <select
               value={selectedHousekeeperId}
-              onChange={(event) => setSelectedHousekeeperId(Number(event.target.value))}
+              onChange={(event) => {
+                setCurrentRoster(null);
+                setSelectedHousekeeperId(Number(event.target.value));
+              }}
               className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
             >
-              <option value={0}>All housekeepers</option>
+              <option value={0}>Select a housekeeper</option>
               {housekeepers.map((housekeeper) => (
                 <option key={housekeeper.id} value={housekeeper.id}>
                   {housekeeper.name}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="space-y-2 text-sm font-medium">
-            Cleaning task
-            <select
-              value={selectedTaskId}
-              onChange={(event) => setSelectedTaskId(Number(event.target.value))}
-              className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-            >
-              <option value={0}>Select task</option>
-              {cleaningTasks.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-2 text-sm font-medium">
-            Duration
-            <Input
-              type="number"
-              min={15}
-              step={15}
-              value={defaultDuration}
-              onChange={(event) => setDefaultDuration(Number(event.target.value))}
-            />
           </label>
         </div>
       </div>
@@ -429,30 +467,17 @@ export default function RosterPage() {
               ))}
             </div>
 
-            <div ref={externalAreasRef} className="max-h-[680px] space-y-2 overflow-y-auto pr-1">
+            <div ref={externalAreasRef} className="max-h-[760px] overflow-y-auto pr-1">
               {visibleAreas.length === 0 ? (
                 <div className="rounded-md bg-slate-50 px-3 py-4 text-sm text-muted-foreground dark:bg-slate-800">
                   No cleaning areas available.
                 </div>
               ) : (
-                visibleAreas.map((area) => (
-                  <div
-                    key={`${area.areaType}-${area.id}`}
-                    className="fc-external-area cursor-grab rounded-md border bg-card px-3 py-2 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 active:cursor-grabbing dark:hover:bg-slate-800"
-                    data-area-id={area.id}
-                    data-area-type={area.areaType}
-                    data-area-name={area.name}
-                    data-title={`${area.name} - ${area.areaType}`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{area.name}</div>
-                        <div className="truncate text-xs text-muted-foreground">{area.subtitle}</div>
-                      </div>
-                      <Badge variant="outline">{area.areaType}</Badge>
-                    </div>
-                  </div>
-                ))
+                <CleaningAreaTree
+                  hierarchy={areaHierarchy}
+                  expandedSections={expandedAreaSections}
+                  onToggle={toggleAreaSection}
+                />
               )}
             </div>
           </CardContent>
@@ -466,42 +491,45 @@ export default function RosterPage() {
                 Weekly Timetable
               </CardTitle>
               <CardDescription>
-                {activeHousekeeper ? `Showing ${activeHousekeeper.name}` : 'Showing all scheduled housekeepers'}
+                {activeHousekeeper ? `Showing ${activeHousekeeper.name}` : 'Select a housekeeper'}
               </CardDescription>
             </div>
-            {saving && (
+            {(saving || loadingRoster) && (
               <Badge variant="outline" className="gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Saving
+                {saving ? 'Saving' : 'Loading'}
               </Badge>
             )}
           </CardHeader>
           <CardContent>
-            <FullCalendar
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="timeGridWeek"
-              initialDate={weekStartDate}
-              key={weekStartDate}
-              editable
-              droppable
-              selectable
-              eventResizableFromStart
-              allDaySlot={false}
-              events={calendarEvents}
-              eventReceive={handleExternalReceive}
-              eventDrop={handleEventDrop}
-              eventResize={handleEventResize}
-              eventClick={handleEventClick}
-              slotMinTime="06:00:00"
-              slotMaxTime="20:00:00"
-              slotDuration="00:30:00"
-              height="auto"
-              headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'timeGridWeek,dayGridMonth',
-              }}
-            />
+            <div className="roster-calendar">
+              <FullCalendar
+                plugins={[timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                initialDate={weekStartDate}
+                firstDay={CALENDAR_FIRST_DAY}
+                editable={!loadingRoster && !saving}
+                droppable={!loadingRoster && !saving}
+                selectable
+                eventResizableFromStart
+                allDaySlot={false}
+                events={calendarEvents}
+                eventReceive={handleExternalReceive}
+                eventDrop={handleEventDrop}
+                eventResize={handleEventResize}
+                eventClick={handleEventClick}
+                datesSet={handleCalendarDatesSet}
+                slotMinTime="06:00:00"
+                slotMaxTime="16:00:00"
+                slotDuration="00:15:00"
+                height="auto"
+                headerToolbar={{
+                  left: 'prev,next today',
+                  center: 'title',
+                  right: '',
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -522,32 +550,12 @@ export default function RosterPage() {
               <form onSubmit={handleEditSubmit} className="grid gap-4 md:grid-cols-2" noValidate>
                 <label className="space-y-2 text-sm font-medium">
                   Housekeeper
-                  <select
-                    value={editForm.housekeeperId}
-                    onChange={(event) => setEditForm((current) => ({ ...current, housekeeperId: Number(event.target.value) }))}
-                    className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                  >
-                    {housekeepers.map((housekeeper) => (
-                      <option key={housekeeper.id} value={housekeeper.id}>
-                        {housekeeper.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Input value={activeHousekeeper?.name ?? ''} disabled />
                 </label>
 
                 <label className="space-y-2 text-sm font-medium">
                   Cleaning task
-                  <select
-                    value={editForm.taskId}
-                    onChange={(event) => setEditForm((current) => ({ ...current, taskId: Number(event.target.value) }))}
-                    className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                  >
-                    {cleaningTasks.map((task) => (
-                      <option key={task.id} value={task.id}>
-                        {task.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Input value={editingTask.taskName} disabled />
                 </label>
 
                 <label className="space-y-2 text-sm font-medium">
@@ -610,25 +618,237 @@ export default function RosterPage() {
   );
 }
 
-function buildCleaningAreas(commonAreas: CommonArea[], units: Unit[], apartments: Apartment[]): CleaningArea[] {
+function CleaningAreaTree({
+  hierarchy,
+  expandedSections,
+  onToggle,
+}: {
+  hierarchy: AreaLocationNode[];
+  expandedSections: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {hierarchy.map((location) => {
+        const locationKey = `roster-location:${location.id}`;
+        const locationExpanded = expandedSections.has(locationKey);
+
+        return (
+          <div key={location.id} className="rounded-md border bg-background">
+            <button
+              type="button"
+              onClick={() => onToggle(locationKey)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold hover:bg-muted/60"
+              aria-expanded={locationExpanded}
+            >
+              <HierarchyChevron expanded={locationExpanded} />
+              <MapPin className="h-4 w-4 text-violet-600" />
+              <span className="min-w-0 flex-1 truncate">{location.name}</span>
+              <Badge variant="outline">{location.buildings.length}</Badge>
+            </button>
+
+            {locationExpanded && (
+              <div className="space-y-2 border-t p-2">
+                {location.buildings.map((building) => {
+                  const buildingKey = `roster-building:${building.id}`;
+                  const buildingExpanded = expandedSections.has(buildingKey);
+
+                  return (
+                    <div key={building.id} className="rounded-md border bg-muted/20">
+                      <button
+                        type="button"
+                        onClick={() => onToggle(buildingKey)}
+                        className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm font-medium hover:bg-muted/60"
+                        aria-expanded={buildingExpanded}
+                      >
+                        <HierarchyChevron expanded={buildingExpanded} />
+                        <Building2 className="h-4 w-4 text-blue-600" />
+                        <span className="min-w-0 flex-1 truncate">{building.name}</span>
+                        <span className="text-xs text-muted-foreground">{building.floors.length} floors</span>
+                      </button>
+
+                      {buildingExpanded && (
+                        <div className="space-y-2 border-t p-2">
+                          {building.floors.map((floor) => {
+                            const floorKey = `roster-floor:${floor.id}`;
+                            const floorExpanded = expandedSections.has(floorKey);
+
+                            return (
+                              <div key={floor.id} className="rounded-md border bg-background">
+                                <button
+                                  type="button"
+                                  onClick={() => onToggle(floorKey)}
+                                  className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm hover:bg-muted/60"
+                                  aria-expanded={floorExpanded}
+                                >
+                                  <HierarchyChevron expanded={floorExpanded} />
+                                  <Layers className="h-4 w-4 text-slate-500" />
+                                  <span className="min-w-0 flex-1 truncate font-medium">{floor.name}</span>
+                                  <span className="text-xs text-muted-foreground">{floor.areas.length}</span>
+                                </button>
+
+                                {floorExpanded && (
+                                  <div className="space-y-3 border-t p-2">
+                                    {(['CommonArea', 'Unit', 'Apartment'] as const).map((areaType) => {
+                                      const typeAreas = floor.areas.filter((area) => area.areaType === areaType);
+                                      if (typeAreas.length === 0) return null;
+
+                                      return (
+                                        <div key={areaType} className="space-y-1.5">
+                                          <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase text-muted-foreground">
+                                            <AreaTypeIcon areaType={areaType} />
+                                            {getAreaTypeLabel(areaType)}
+                                          </div>
+                                          {typeAreas.map((area) => <DraggableAreaItem key={`${area.areaType}-${area.id}`} area={area} />)}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DraggableAreaItem({ area }: { area: CleaningArea }) {
+  return (
+    <div
+      className={`fc-external-area cursor-grab rounded-md border px-2.5 py-2 shadow-sm transition active:cursor-grabbing ${ROSTER_AREA_STYLES[area.areaType].listClassName}`}
+      data-area-id={area.id}
+      data-area-type={area.areaType}
+      data-area-name={area.name}
+      data-task-duration={area.cleaningTaskDuration ?? 60}
+      data-title={`${area.name} - ${area.cleaningTaskName || 'Cleaning task'}`}
+    >
+      <div className="truncate text-sm font-medium">{area.name}</div>
+      <div className="truncate text-xs text-muted-foreground">
+        {area.cleaningTaskName || 'No task'}{area.residentName ? ` / ${area.residentName}` : ''}
+      </div>
+    </div>
+  );
+}
+
+function HierarchyChevron({ expanded }: { expanded: boolean }) {
+  return <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`} />;
+}
+
+function AreaTypeIcon({ areaType }: { areaType: RosterAreaType }) {
+  const Icon = areaType === 'CommonArea' ? Sparkles : areaType === 'Unit' ? DoorOpen : Home;
+  return <Icon className="h-3.5 w-3.5" />;
+}
+
+function getAreaTypeLabel(areaType: RosterAreaType) {
+  return areaType === 'CommonArea' ? 'Common Areas' : areaType === 'Unit' ? 'Units' : 'Apartments';
+}
+
+function buildAreaHierarchy(areas: CleaningArea[]): AreaLocationNode[] {
+  const locations = new Map<number, AreaLocationNode>();
+
+  for (const area of areas) {
+    let location = locations.get(area.locationTypeId);
+    if (!location) {
+      location = { id: area.locationTypeId, name: area.locationTypeName, buildings: [] };
+      locations.set(area.locationTypeId, location);
+    }
+
+    let building = location.buildings.find((item) => item.id === area.buildingBlockId);
+    if (!building) {
+      building = { id: area.buildingBlockId, name: area.buildingBlockName, floors: [] };
+      location.buildings.push(building);
+    }
+
+    let floor = building.floors.find((item) => item.id === area.floorId);
+    if (!floor) {
+      floor = { id: area.floorId, name: area.floorName, areas: [] };
+      building.floors.push(floor);
+    }
+
+    floor.areas.push(area);
+  }
+
+  return [...locations.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((location) => ({
+      ...location,
+      buildings: location.buildings
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((building) => ({
+          ...building,
+          floors: building.floors
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((floor) => ({ ...floor, areas: floor.areas.sort((a, b) => a.name.localeCompare(b.name)) })),
+        })),
+    }));
+}
+
+function buildCleaningAreas(
+  commonAreas: CommonArea[],
+  units: Unit[],
+  apartments: Apartment[],
+  cleaningTasks: CleaningTask[]
+): CleaningArea[] {
+  const taskById = new Map(cleaningTasks.map((task) => [task.id, task]));
   return [
     ...commonAreas.map((area) => ({
       id: area.id,
       name: area.name,
       areaType: 'CommonArea' as const,
-      subtitle: `${area.locationTypeName} / ${area.buildingBlockName} / ${area.floorName}`,
+      subtitle: `${area.locationTypeName} / ${area.buildingBlockName} / ${area.floorName} / ${area.cleaningTaskName || 'No task'}`,
+      cleaningTaskId: area.cleaningTaskId,
+      cleaningTaskName: area.cleaningTaskName,
+      cleaningTaskDuration: area.cleaningTaskId ? taskById.get(area.cleaningTaskId)?.estimatedDuration : undefined,
+      locationTypeId: area.locationTypeId,
+      locationTypeName: area.locationTypeName,
+      buildingBlockId: area.buildingBlockId,
+      buildingBlockName: area.buildingBlockName,
+      floorId: area.floorId,
+      floorName: area.floorName,
     })),
     ...units.map((unit) => ({
       id: unit.id,
       name: unit.name,
       areaType: 'Unit' as const,
-      subtitle: `${unit.locationTypeName} / ${unit.buildingBlockName} / ${unit.floorName} / ${unit.unitNumber}`,
+      subtitle: `${unit.locationTypeName} / ${unit.buildingBlockName} / ${unit.floorName} / ${unit.unitNumber} / ${unit.cleaningTaskName || 'No task'}`,
+      cleaningTaskId: unit.cleaningTaskId,
+      cleaningTaskName: unit.cleaningTaskName,
+      cleaningTaskDuration: unit.cleaningTaskId ? taskById.get(unit.cleaningTaskId)?.estimatedDuration : undefined,
+      residentId: unit.residentId,
+      residentName: unit.residentName,
+      locationTypeId: unit.locationTypeId,
+      locationTypeName: unit.locationTypeName,
+      buildingBlockId: unit.buildingBlockId,
+      buildingBlockName: unit.buildingBlockName,
+      floorId: unit.floorId,
+      floorName: unit.floorName,
     })),
     ...apartments.map((apartment) => ({
       id: apartment.id,
       name: apartment.name,
       areaType: 'Apartment' as const,
-      subtitle: `${apartment.locationTypeName} / ${apartment.buildingBlockName} / ${apartment.floorName} / ${apartment.apartmentNumber}`,
+      subtitle: `${apartment.locationTypeName} / ${apartment.buildingBlockName} / ${apartment.floorName} / ${apartment.apartmentNumber} / ${apartment.cleaningTaskName || 'No task'}`,
+      cleaningTaskId: apartment.cleaningTaskId,
+      cleaningTaskName: apartment.cleaningTaskName,
+      cleaningTaskDuration: apartment.cleaningTaskId ? taskById.get(apartment.cleaningTaskId)?.estimatedDuration : undefined,
+      residentId: apartment.residentId,
+      residentName: apartment.residentName,
+      locationTypeId: apartment.locationTypeId,
+      locationTypeName: apartment.locationTypeName,
+      buildingBlockId: apartment.buildingBlockId,
+      buildingBlockName: apartment.buildingBlockName,
+      floorId: apartment.floorId,
+      floorName: apartment.floorName,
     })),
   ].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -659,6 +879,8 @@ function buildRosterTask({
     commonAreaId: area.areaType === 'CommonArea' ? area.id : undefined,
     unitId: area.areaType === 'Unit' ? area.id : undefined,
     apartmentId: area.areaType === 'Apartment' ? area.id : undefined,
+    residentId: area.residentId,
+    residentName: area.residentName,
     areaType: area.areaType,
     areaName: area.name,
     scheduledDate: toApiDate(scheduledDate),
@@ -673,12 +895,23 @@ function mapTasksToEvents(tasks: RosterTask[]): EventInput[] {
   return tasks.map((task) => {
     const start = combineDateTime(toDateInput(new Date(task.scheduledDate)), task.startTime);
     const end = combineDateTime(toDateInput(new Date(task.scheduledDate)), task.endTime);
+    const style = task.areaType
+      ? ROSTER_AREA_STYLES[task.areaType]
+      : ROSTER_AREA_STYLES.CommonArea;
 
     return {
       id: task.id.toString(),
-      title: `${task.areaName || task.taskName} - ${task.housekeeperName}`,
+      title: [
+        task.areaName,
+        task.taskName,
+        task.residentName,
+        formatDuration(task.startTime, task.endTime),
+      ].filter(Boolean).join(' / '),
       start,
       end,
+      backgroundColor: style.eventBackgroundColor,
+      borderColor: style.eventBorderColor,
+      textColor: style.eventTextColor,
       extendedProps: task,
     };
   });
@@ -699,11 +932,18 @@ function updateTaskTime(tasks: RosterTask[], taskId: number, start: Date, end: D
 
 function getStartOfWeek(date: Date) {
   const copy = new Date(date);
-  const day = copy.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  copy.setDate(copy.getDate() + diff);
+  const daysFromWeekStart = (copy.getDay() - CALENDAR_FIRST_DAY + 7) % 7;
+  copy.setDate(copy.getDate() - daysFromWeekStart);
   copy.setHours(0, 0, 0, 0);
   return copy;
+}
+
+function isRosterForWeek(roster: Roster | null, housekeeperId: number, weekStartDate: string) {
+  return Boolean(
+    roster &&
+      roster.housekeeperId === housekeeperId &&
+      toDateInput(new Date(roster.weekStartDate)) === weekStartDate
+  );
 }
 
 function parseDateInput(value: string) {
@@ -743,4 +983,18 @@ function minutesToDuration(minutes: number) {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}:00`;
+}
+
+function positiveDuration(minutes: number) {
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : 60;
+}
+
+function formatDuration(startTime: string, endTime: string) {
+  const [startHour, startMinute] = startTime.split(':').map(Number);
+  const [endHour, endMinute] = endTime.split(':').map(Number);
+  const minutes = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+  const duration = positiveDuration(minutes);
+  return duration >= 60 && duration % 60 === 0
+    ? `${duration / 60} hr`
+    : `${duration} min`;
 }

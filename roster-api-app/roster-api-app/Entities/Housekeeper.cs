@@ -10,4 +10,5 @@ public class Housekeeper
     public string Email { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty; // Active, Inactive
     public EmployeeTypes EmploymentType { get; set; } = EmployeeTypes.Permanent; // Full-time, Part-time
+    public ICollection<Roster> Rosters { get; set; } = new List<Roster>();
 }

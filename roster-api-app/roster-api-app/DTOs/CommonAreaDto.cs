@@ -11,4 +11,6 @@ public class CommonAreaDto
     public string BuildingBlockName { get; set; } = string.Empty;
     public int LocationTypeId { get; set; }
     public string LocationTypeName { get; set; } = string.Empty;
+    public int? CleaningTaskId { get; set; }
+    public string? CleaningTaskName { get; set; }
 }

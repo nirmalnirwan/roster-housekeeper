@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Briefcase, Loader2, Mail, Phone, Plus, UserPlus, X } from 'lucide-react';
+import { Briefcase, Edit3, Loader2, Mail, Phone, Plus, Trash2, UserPlus, UserRound, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import useRequireAuth from '../hooks/useRequireAuth';
@@ -287,48 +287,37 @@ export default function HousekeepersPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-3">
         {housekeepers.length === 0 ? (
-          <div className="col-span-full rounded-lg bg-slate-50 py-12 text-center dark:bg-slate-800">
+          <div className="rounded-lg bg-slate-50 py-12 text-center dark:bg-slate-800">
             <p className="text-gray-600 dark:text-gray-400">No housekeepers found</p>
           </div>
         ) : (
           housekeepers.map((housekeeper) => (
-            <Card key={housekeeper.id} className="transition hover:shadow-md">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between gap-3">
-                  <span className="truncate">{housekeeper.name}</span>
-                  <Badge
-                    className={
-                      housekeeper.status === 'Active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }
-                  >
-                    {housekeeper.status}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Mail className="h-4 w-4" />
-                  <span className="truncate text-sm">{housekeeper.email}</span>
+            <Card key={housekeeper.id} className="transition hover:border-slate-300 hover:shadow-sm">
+              <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-200">
+                  <UserRound className="h-5 w-5" />
                 </div>
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Phone className="h-4 w-4" />
-                  <span className="text-sm">{housekeeper.phone}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h2 className="truncate text-base font-semibold">{housekeeper.name}</h2>
+                    <Badge
+                      variant="outline"
+                      className={housekeeper.status === 'Active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ''}
+                    >
+                      {housekeeper.status}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+                    <span className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0" /><span className="truncate">{housekeeper.email}</span></span>
+                    <span className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0" />{housekeeper.phone}</span>
+                    <span className="flex items-center gap-2"><Briefcase className="h-4 w-4 shrink-0" />{housekeeper.employmentType}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Briefcase className="h-4 w-4" />
-                  <span className="text-sm">{housekeeper.employmentType}</span>
-                </div>
-                <div className="flex gap-2 pt-3">
-                  <Button size="sm" variant="outline" className="flex-1">
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="destructive" className="flex-1">
-                    Remove
-                  </Button>
+                <div className="flex shrink-0 gap-2 sm:self-center">
+                  <Button size="icon-sm" variant="outline" aria-label={`Edit ${housekeeper.name}`} title="Edit housekeeper"><Edit3 className="h-4 w-4" /></Button>
+                  <Button size="icon-sm" variant="destructive" aria-label={`Remove ${housekeeper.name}`} title="Remove housekeeper"><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </CardContent>
             </Card>

@@ -25,9 +25,9 @@ public class RostersController : ControllerBase
     }
 
     [HttpGet("by-week")]
-    public async Task<IActionResult> GetByWeek([FromQuery] DateTime weekStartDate)
+    public async Task<IActionResult> GetByWeek([FromQuery] int housekeeperId, [FromQuery] DateTime weekStartDate)
     {
-        var dto = await _service.GetByWeekStartDateAsync(weekStartDate);
+        var dto = await _service.GetByHousekeeperAndWeekAsync(housekeeperId, weekStartDate);
         if (dto == null) return NotFound(new { error = "Roster not found" });
         return Ok(dto);
     }

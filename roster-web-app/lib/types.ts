@@ -98,12 +98,15 @@ export interface CommonArea {
   buildingBlockName: string;
   locationTypeId: number;
   locationTypeName: string;
+  cleaningTaskId?: number;
+  cleaningTaskName?: string;
 }
 
 export interface CommonAreaRequest {
   name: string;
   description: string;
   floorId: number;
+  cleaningTaskId: number;
 }
 
 export interface Unit {
@@ -117,6 +120,10 @@ export interface Unit {
   buildingBlockName: string;
   locationTypeId: number;
   locationTypeName: string;
+  cleaningTaskId?: number;
+  cleaningTaskName?: string;
+  residentId?: number;
+  residentName?: string;
 }
 
 export interface UnitRequest {
@@ -124,6 +131,7 @@ export interface UnitRequest {
   unitNumber: string;
   notes: string;
   floorId: number;
+  cleaningTaskId: number;
 }
 
 export interface Apartment {
@@ -137,6 +145,10 @@ export interface Apartment {
   buildingBlockName: string;
   locationTypeId: number;
   locationTypeName: string;
+  cleaningTaskId?: number;
+  cleaningTaskName?: string;
+  residentId?: number;
+  residentName?: string;
 }
 
 export interface ApartmentRequest {
@@ -144,6 +156,7 @@ export interface ApartmentRequest {
   apartmentNumber: string;
   notes: string;
   floorId: number;
+  cleaningTaskId: number;
 }
 
 export interface AssignableArea {
@@ -171,7 +184,7 @@ export interface CleaningTask {
 export type CleaningTaskCategory =
   | 'CommunityArea'
   | 'Apartment'
-  | 'UnitOrRoom'
+  | 'Unit'
   | 'SpecialTask';
 
 export interface CleaningTaskRequest {
@@ -212,6 +225,8 @@ export interface RosterTask {
 
 export interface Roster {
   id: number;
+  housekeeperId: number;
+  housekeeperName: string;
   weekStartDate: string;
   createdBy: string;
   createdDate: string;

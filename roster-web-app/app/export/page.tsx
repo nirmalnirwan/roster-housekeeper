@@ -85,6 +85,10 @@ export default function ExportPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Housekeeper</div>
+                  <div className="text-sm font-medium">{r.housekeeperName}</div>
+                </div>
+                <div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">Tasks</div>
                   <div className="text-2xl font-bold">{r.rosterTasks.length}</div>
                 </div>

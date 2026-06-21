@@ -1,5 +1,6 @@
 using roster_api_app.DTOs;
 using roster_api_app.Entities;
+using roster_api_app.Entities.Enums;
 using roster_api_app.Repositories;
 
 namespace roster_api_app.Services;
@@ -8,11 +9,16 @@ public class UnitService : IUnitService
 {
     private readonly IAreaRepository _repository;
     private readonly IFloorRepository _floorRepository;
+    private readonly ICleaningTaskRepository _cleaningTaskRepository;
 
-    public UnitService(IAreaRepository repository, IFloorRepository floorRepository)
+    public UnitService(
+        IAreaRepository repository,
+        IFloorRepository floorRepository,
+        ICleaningTaskRepository cleaningTaskRepository)
     {
         _repository = repository;
         _floorRepository = floorRepository;
+        _cleaningTaskRepository = cleaningTaskRepository;
     }
 
     public async Task<IEnumerable<UnitDto>> GetAllAsync()
@@ -43,7 +49,8 @@ public class UnitService : IUnitService
             Name = dto.Name,
             UnitNumber = dto.UnitNumber,
             Notes = dto.Notes,
-            FloorId = dto.FloorId
+            FloorId = dto.FloorId,
+            CleaningTaskId = dto.CleaningTaskId
         };
 
         await _repository.AddUnitAsync(unit);
@@ -62,6 +69,7 @@ public class UnitService : IUnitService
         unit.UnitNumber = dto.UnitNumber;
         unit.Notes = dto.Notes;
         unit.FloorId = dto.FloorId;
+        unit.CleaningTaskId = dto.CleaningTaskId;
         await _repository.UpdateUnitAsync(unit);
     }
 
@@ -78,6 +86,7 @@ public class UnitService : IUnitService
 
     internal static UnitDto ToDto(Unit unit)
     {
+        var resident = unit.Residents.OrderBy(resident => resident.Id).FirstOrDefault();
         return new UnitDto
         {
             Id = unit.Id,
@@ -89,7 +98,11 @@ public class UnitService : IUnitService
             BuildingBlockId = unit.Floor?.BuildingBlockId ?? 0,
             BuildingBlockName = unit.Floor?.BuildingBlock?.Name ?? string.Empty,
             LocationTypeId = unit.Floor?.BuildingBlock?.LocationTypeId ?? 0,
-            LocationTypeName = unit.Floor?.BuildingBlock?.LocationType?.Name ?? string.Empty
+            LocationTypeName = unit.Floor?.BuildingBlock?.LocationType?.Name ?? string.Empty,
+            CleaningTaskId = unit.CleaningTaskId,
+            CleaningTaskName = unit.CleaningTask?.Name,
+            ResidentId = resident?.Id,
+            ResidentName = resident?.Name
         };
     }
 
@@ -117,6 +130,15 @@ public class UnitService : IUnitService
 
         if (await _repository.UnitNumberExistsAsync(dto.FloorId, dto.UnitNumber, excludeId))
             throw new InvalidOperationException("A unit with this number already exists on this floor.");
+
+        var task = dto.CleaningTaskId.HasValue
+            ? await _cleaningTaskRepository.GetByIdAsync(dto.CleaningTaskId.Value)
+            : null;
+        if (task == null)
+            throw new InvalidOperationException("Unit must have an existing cleaning task.");
+
+        if (task.TaskCategory != CleaningTaskCategory.Unit && task.TaskCategory != CleaningTaskCategory.SpecialTask)
+            throw new InvalidOperationException("Units can only use Unit or Special Task cleaning tasks.");
     }
 
     private static void Normalize(UnitRequestDto dto)

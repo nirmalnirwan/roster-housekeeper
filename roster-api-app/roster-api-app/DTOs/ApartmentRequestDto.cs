@@ -16,4 +16,8 @@ public class ApartmentRequestDto
 
     [Range(1, int.MaxValue, ErrorMessage = "Floor is required.")]
     public int FloorId { get; set; }
+
+    [Required(ErrorMessage = "Cleaning task is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Cleaning task is required.")]
+    public int? CleaningTaskId { get; set; }
 }

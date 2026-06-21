@@ -11,8 +11,9 @@ export async function getRoster(id: number): Promise<Roster> {
   return (await res.json()) as Roster;
 }
 
-export async function getRosterByWeek(weekStartDate: string): Promise<Roster | null> {
-  const res = await apiClient.get(`/rosters/by-week?weekStartDate=${encodeURIComponent(weekStartDate)}`);
+export async function getRosterByWeek(housekeeperId: number, weekStartDate: string): Promise<Roster | null> {
+  const query = new URLSearchParams({ housekeeperId: housekeeperId.toString(), weekStartDate });
+  const res = await apiClient.getOptional(`/rosters/by-week?${query.toString()}`);
   if (res.status === 404) return null;
   return (await res.json()) as Roster;
 }

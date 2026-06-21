@@ -26,11 +26,11 @@ public class RosterRepository : IRosterRepository
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public async Task<Roster?> GetByWeekStartDateAsync(DateTime weekStartDate)
+    public async Task<Roster?> GetByHousekeeperAndWeekAsync(int housekeeperId, DateTime weekStartDate)
     {
         var normalized = weekStartDate.Date;
         return await IncludeRosterGraph(_context.Rosters)
-            .FirstOrDefaultAsync(r => r.WeekStartDate.Date == normalized);
+            .FirstOrDefaultAsync(r => r.HousekeeperId == housekeeperId && r.WeekStartDate == normalized);
     }
 
     public async Task AddAsync(Roster roster)
@@ -58,6 +58,7 @@ public class RosterRepository : IRosterRepository
     private static IQueryable<Roster> IncludeRosterGraph(IQueryable<Roster> query)
     {
         return query
+            .Include(r => r.Housekeeper)
             .Include(r => r.RosterTasks)
             .ThenInclude(rt => rt.Housekeeper)
             .Include(r => r.RosterTasks)

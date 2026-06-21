@@ -6,6 +6,8 @@ namespace roster_api_app.DTOs;
 public class RosterDto
 {
     public int Id { get; set; }
+    public int HousekeeperId { get; set; }
+    public string HousekeeperName { get; set; } = string.Empty;
     public DateTime WeekStartDate { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; }
